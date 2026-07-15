@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configurações — Gestão de Contratos TI</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div id="navbar-root"></div>
+
+    <main class="page-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Configurações</h1>
+          <p>Conexão com API, dados do sistema e preferências</p>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:240px 1fr;gap:var(--sp-lg);align-items:start">
+
+        <!-- MENU LATERAL CONFIG -->
+        <div class="card" style="position:sticky;top:calc(var(--navbar-h) + var(--sp-lg))">
+          <div class="card-body" style="padding:var(--sp-sm)">
+            <nav id="config-nav" style="display:flex;flex-direction:column;gap:2px">
+              <div class="nav-item active" data-section="api" style="padding:8px 12px;border-radius:var(--r-sm);color:var(--c-text-2)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> <span class="nav-item-text">Conexão API</span>
+              </div>
+              <div class="nav-item" data-section="sistema" style="padding:8px 12px;border-radius:var(--r-sm);color:var(--c-text-2)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> <span class="nav-item-text">Sistema</span>
+              </div>
+              <div class="nav-item" data-section="dados" style="padding:8px 12px;border-radius:var(--r-sm);color:var(--c-text-2)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> <span class="nav-item-text">Dados</span>
+              </div>
+              <div class="nav-item" data-section="sobre" style="padding:8px 12px;border-radius:var(--r-sm);color:var(--c-text-2)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> <span class="nav-item-text">Sobre</span>
+              </div>
+            </nav>
+          </div>
+        </div>
+
+        <!-- CONTEÚDO -->
+        <div style="display:flex;flex-direction:column;gap:var(--sp-lg)">
+
+          <!-- SEÇÃO: API -->
+          <div id="section-api">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Conexão com Google Apps Script</div>
+                  <div class="card-subtitle">Configure a URL da sua API backend</div>
+                </div>
+                <span id="status-api-badge" class="badge badge-neutral">Não configurado</span>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-info" style="margin-bottom:var(--sp-md)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <div>
+                    <strong>Modo Demonstração Ativo</strong><br>
+                    <span style="font-size:12px">O sistema está usando dados de exemplo locais. Para conectar ao Google Sheets, insira a URL do seu Web App publicado abaixo.</span>
+                  </div>
+                </div>
+
+                <div class="form-group" style="max-width:600px">
+                  <label class="form-label">URL do Google Apps Script Web App</label>
+                  <div style="display:flex;gap:8px">
+                    <input class="form-control" id="input-gas-url"
+                      placeholder="https://script.google.com/macros/s/XXXXX/exec"
+                      value="" />
+                    <button class="btn btn-primary" id="btn-salvar-url"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar</button>
+                  </div>
+                  <div class="form-hint">Cole aqui a URL gerada ao publicar o Apps Script como Web App.</div>
+                </div>
+
+                <div style="margin-top:var(--sp-md)">
+                  <button class="btn btn-secondary btn-sm" id="btn-testar-api"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Testar Conexão</button>
+                  <button class="btn btn-ghost btn-sm" id="btn-limpar-url" style="color:var(--c-danger)">Remover URL</button>
+                </div>
+
+                <div id="teste-resultado" style="margin-top:12px"></div>
+              </div>
+            </div>
+
+            <!-- GUIA DE IMPLANTAÇÃO -->
+            <div class="card" style="margin-top:var(--sp-lg)">
+              <div class="card-header">
+                <div class="card-title">Guia de Implantação</div>
+              </div>
+              <div class="card-body">
+                <div style="display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--c-border)">
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--c-navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">1</div>
+                  <div>
+                    <div style="font-weight:600;font-size:13px;color:var(--c-text-1);margin-bottom:4px">Criar a Planilha Google Sheets</div>
+                    <div style="font-size:12px;color:var(--c-text-3);line-height:1.5">Acesse Google Sheets → crie uma nova planilha → copie o ID da URL (entre /d/ e /edit).</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--c-border)">
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--c-navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">2</div>
+                  <div>
+                    <div style="font-weight:600;font-size:13px;color:var(--c-text-1);margin-bottom:4px">Abrir o Apps Script</div>
+                    <div style="font-size:12px;color:var(--c-text-3);line-height:1.5">Na planilha, vá em Extensões → Apps Script. Cole o conteúdo do arquivo <code>code.gs</code> no editor.</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--c-border)">
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--c-navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">3</div>
+                  <div>
+                    <div style="font-weight:600;font-size:13px;color:var(--c-text-1);margin-bottom:4px">Executar a função setup()</div>
+                    <div style="font-size:12px;color:var(--c-text-3);line-height:1.5">No Apps Script, selecione a função <code>setup</code> e clique em Executar. Autorize as permissões solicitadas. Isso criará todas as abas automaticamente.</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--c-border)">
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--c-navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">4</div>
+                  <div>
+                    <div style="font-weight:600;font-size:13px;color:var(--c-text-1);margin-bottom:4px">Publicar como Web App</div>
+                    <div style="font-size:12px;color:var(--c-text-3);line-height:1.5">Clique em Implantar → Nova implantação → Tipo: Web App. Configure: "Executar como: Eu" e "Quem tem acesso: Qualquer pessoa". Copie a URL gerada.</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--c-border)">
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--c-navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">5</div>
+                  <div>
+                    <div style="font-weight:600;font-size:13px;color:var(--c-text-1);margin-bottom:4px">Configurar no sistema</div>
+                    <div style="font-size:12px;color:var(--c-text-3);line-height:1.5">Cole a URL copiada no campo acima e clique em Salvar. Teste a conexão para verificar.</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:16px;padding:16px 0">
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--c-navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">6</div>
+                  <div>
+                    <div style="font-weight:600;font-size:13px;color:var(--c-text-1);margin-bottom:4px">Publicar no Vercel</div>
+                    <div style="font-size:12px;color:var(--c-text-3);line-height:1.5">Suba os arquivos para um repositório GitHub e conecte ao Vercel. O sistema estará online em minutos.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SEÇÃO: SISTEMA -->
+          <div id="section-sistema" class="hidden">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Aparência</div>
+              </div>
+              <div class="card-body">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--c-border)">
+                  <div>
+                    <div style="font-size:13px;font-weight:500">Modo Escuro</div>
+                    <div style="font-size:12px;color:var(--c-text-3)">Alternar entre tema claro e escuro</div>
+                  </div>
+                  <button class="btn btn-secondary btn-sm" id="btn-toggle-tema">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> Alternar Tema
+                  </button>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0">
+                  <div>
+                    <div style="font-size:13px;font-weight:500">Menu Lateral</div>
+                    <div style="font-size:12px;color:var(--c-text-3)">Recolher/expandir o menu lateral</div>
+                  </div>
+                  <button class="btn btn-secondary btn-sm" id="btn-toggle-sidebar">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> Recolher Menu
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:var(--sp-lg)">
+              <div class="card-header">
+                <div class="card-title">Informações do Usuário</div>
+              </div>
+              <div class="card-body">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Nome</label>
+                    <input class="form-control" id="cfg-nome" placeholder="Seu nome" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Cargo</label>
+                    <input class="form-control" id="cfg-cargo" placeholder="Ex: Analista de TI" />
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-sm" style="margin-top:12px" id="btn-salvar-user"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SEÇÃO: DADOS -->
+          <div id="section-dados" class="hidden">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Gerenciar Dados Locais</div>
+                <span class="badge badge-warning">Cuidado</span>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-warning" style="margin-bottom:var(--sp-md)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <span>As ações abaixo afetam apenas os dados de demonstração. Dados no Google Sheets não são apagados.</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid var(--c-border);border-radius:var(--r-md)">
+                    <div>
+                      <div style="font-size:13px;font-weight:500">Exportar dados demo</div>
+                      <div style="font-size:12px;color:var(--c-text-3)">Baixar contratos e movimentações de exemplo em JSON</div>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" id="btn-export-demo"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Exportar JSON</button>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid var(--c-danger);border-radius:var(--r-md)">
+                    <div>
+                      <div style="font-size:13px;font-weight:500;color:var(--c-danger)">Limpar localStorage</div>
+                      <div style="font-size:12px;color:var(--c-text-3)">Remove configurações salvas (URL da API, tema, etc.)</div>
+                    </div>
+                    <button class="btn btn-danger btn-sm" id="btn-limpar-ls">Limpar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ESTATÍSTICAS -->
+            <div class="card" style="margin-top:var(--sp-lg)">
+              <div class="card-header"><div class="card-title">Estatísticas dos Dados Demo</div></div>
+              <div class="card-body" id="stats-demo"></div>
+            </div>
+          </div>
+
+          <!-- SEÇÃO: SOBRE -->
+          <div id="section-sobre" class="hidden">
+            <div class="card">
+              <div class="card-body" style="text-align:center;padding:var(--sp-2xl)">
+                <div style="width:64px;height:64px;background:linear-gradient(135deg,var(--c-teal),var(--c-blue-light));
+                     border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;
+                     margin:0 auto var(--sp-lg);font-size:24px;font-weight:800;color:#fff">TI</div>
+                <h2 style="font-size:22px;font-weight:800;color:var(--c-navy);margin-bottom:8px">ContratosGI</h2>
+                <div style="font-size:14px;color:var(--c-text-3);margin-bottom:var(--sp-lg)">
+                  Sistema de Gestão Inteligente de Contratos de TI<br>
+                  <span style="font-size:12px">Versão 1.0.0 · Caruaru Shopping</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-md);max-width:400px;margin:0 auto">
+                  <div style="padding:16px;background:var(--c-ice);border-radius:var(--r-md)">
+                    <div style="font-size:20px;font-weight:800;color:var(--c-navy)" id="stat-contratos">—</div>
+                    <div style="font-size:11px;color:var(--c-text-3)">Contratos</div>
+                  </div>
+                  <div style="padding:16px;background:var(--c-ice);border-radius:var(--r-md)">
+                    <div style="font-size:20px;font-weight:800;color:var(--c-navy)" id="stat-fornec">—</div>
+                    <div style="font-size:11px;color:var(--c-text-3)">Fornecedores</div>
+                  </div>
+                  <div style="padding:16px;background:var(--c-ice);border-radius:var(--r-md)">
+                    <div style="font-size:20px;font-weight:800;color:var(--c-navy)" id="stat-movs">—</div>
+                    <div style="font-size:11px;color:var(--c-text-3)">Movimentações</div>
+                  </div>
+                </div>
+                <div style="margin-top:var(--sp-xl);font-size:11px;color:var(--c-text-4)">
+                  Stack: HTML5 · CSS3 · JavaScript ES6+ · Google Sheets · Apps Script · Vercel
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/utils.js"></script>
+<script>
+document.getElementById('sidebar-root').innerHTML = getSidebarHTML();
+document.getElementById('navbar-root').innerHTML  = getNavbarHTML('Configurações', [
+  { label:'Dashboard', url:'index.html' }, { label:'Configurações' }
+]);
+initApp();
+
+/* ── NAVEGAÇÃO SEÇÕES ───────────────────────────────────── */
+document.getElementById('config-nav').querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('#config-nav .nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    ['api','sistema','dados','sobre'].forEach(s =>
+      document.getElementById('section-' + s)?.classList.add('hidden'));
+    document.getElementById('section-' + item.dataset.section)?.classList.remove('hidden');
+  });
+});
+
+/* ── CARREGAR URL ATUAL ─────────────────────────────────── */
+function carregarEstado() {
+  const url = API.getApiUrl();
+  document.getElementById('input-gas-url').value = url || '';
+
+  const badge = document.getElementById('status-api-badge');
+  if (url) {
+    badge.className = 'badge badge-success';
+    badge.textContent = 'URL configurada';
+  } else {
+    badge.className = 'badge badge-warning';
+    badge.textContent = 'Modo Demo';
+  }
+
+  // Usuário
+  document.getElementById('cfg-nome').value  = localStorage.getItem('user-nome')  || 'Rafael';
+  document.getElementById('cfg-cargo').value = localStorage.getItem('user-cargo') || 'Analista de TI';
+
+  // Stats sobre
+  document.getElementById('stat-contratos').textContent = Demo.contratos.length;
+  document.getElementById('stat-fornec').textContent    = Demo.fornecedores.length;
+  document.getElementById('stat-movs').textContent      = Demo.movimentacoes.length;
+
+  // Stats dados
+  document.getElementById('stats-demo').innerHTML = `
+    <div class="info-grid">
+      <div class="info-item"><div class="info-label">Contratos Demo</div><div class="info-value">${Demo.contratos.length}</div></div>
+      <div class="info-item"><div class="info-label">Fornecedores Demo</div><div class="info-value">${Demo.fornecedores.length}</div></div>
+      <div class="info-item"><div class="info-label">Movimentações Demo</div><div class="info-value">${Demo.movimentacoes.length}</div></div>
+      <div class="info-item"><div class="info-label">Tema Atual</div><div class="info-value">${localStorage.getItem('theme')||'light'}</div></div>
+      <div class="info-item"><div class="info-label">URL Configurada</div><div class="info-value">${API.getApiUrl() ? 'Sim' : 'Não'}</div></div>
+    </div>`;
+}
+
+/* ── SALVAR URL ─────────────────────────────────────────── */
+document.getElementById('btn-salvar-url').addEventListener('click', () => {
+  const url = document.getElementById('input-gas-url').value.trim();
+  if (url && !url.startsWith('https://script.google.com/')) {
+    Toast.warning('URL inválida. Deve começar com https://script.google.com/');
+    return;
+  }
+  API.setApiUrl(url);
+  carregarEstado();
+  Toast.success(url ? 'URL da API salva! O sistema usará o Google Sheets.' : 'URL removida. Modo demo ativado.');
+});
+
+/* ── LIMPAR URL ─────────────────────────────────────────── */
+document.getElementById('btn-limpar-url').addEventListener('click', () => {
+  Modal.confirm('Remover a URL da API? O sistema voltará ao modo de demonstração.', () => {
+    API.setApiUrl('');
+    document.getElementById('input-gas-url').value = '';
+    carregarEstado();
+    Toast.info('Modo de demonstração ativado.');
+  });
+});
+
+/* ── TESTAR CONEXÃO ─────────────────────────────────────── */
+document.getElementById('btn-testar-api').addEventListener('click', async () => {
+  const url = API.getApiUrl();
+  if (!url) { Toast.warning('Configure a URL da API primeiro.'); return; }
+  const res = document.getElementById('teste-resultado');
+  res.innerHTML = `<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--c-text-3)">
+    <span class="spinner" style="display:inline-block"></span> Testando conexão…</div>`;
+  try {
+    const data = await API.obterDashboard();
+    res.innerHTML = `<div class="alert alert-success">${icon('check',16)} <strong>Conexão bem-sucedida!</strong> API respondeu corretamente. ${data.total_contratos||0} contratos encontrados.</div>`;
+  } catch(e) {
+    res.innerHTML = `<div class="alert alert-danger">${icon('alert-triangle',16)} <strong>Erro:</strong> ${e.message}</div>`;
+  }
+});
+
+/* ── TEMA / SIDEBAR ─────────────────────────────────────── */
+document.getElementById('btn-toggle-tema').addEventListener('click', () => {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  Toast.success(`Tema ${next === 'dark' ? 'escuro' : 'claro'} ativado.`);
+});
+
+document.getElementById('btn-toggle-sidebar').addEventListener('click', () => {
+  const sb = document.getElementById('sidebar');
+  sb.classList.toggle('collapsed');
+  localStorage.setItem('sidebar-collapsed', sb.classList.contains('collapsed') ? '1' : '0');
+});
+
+/* ── SALVAR USUÁRIO ─────────────────────────────────────── */
+document.getElementById('btn-salvar-user').addEventListener('click', () => {
+  const nome  = document.getElementById('cfg-nome').value.trim();
+  const cargo = document.getElementById('cfg-cargo').value.trim();
+  if (nome) { localStorage.setItem('user-nome', nome); document.getElementById('user-name')?.textContent && (document.getElementById('user-name').textContent = nome); }
+  if (cargo) localStorage.setItem('user-cargo', cargo);
+  Toast.success('Informações salvas!');
+});
+
+/* ── EXPORTAR DEMO ──────────────────────────────────────── */
+document.getElementById('btn-export-demo').addEventListener('click', () => {
+  Export.json({ contratos: Demo.contratos, fornecedores: Demo.fornecedores, movimentacoes: Demo.movimentacoes }, 'dados-demo');
+});
+
+/* ── LIMPAR LS ──────────────────────────────────────────── */
+document.getElementById('btn-limpar-ls').addEventListener('click', () => {
+  Modal.confirm('Limpar todas as configurações do localStorage? (URL da API, tema, preferências)', () => {
+    localStorage.clear();
+    Toast.success('localStorage limpo. Recarregando…');
+    setTimeout(() => location.reload(), 1200);
+  });
+});
+
+carregarEstado();
+</script>
+</body>
+</html>

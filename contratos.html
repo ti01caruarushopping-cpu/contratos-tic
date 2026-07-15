@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contratos — Gestão de Contratos TI</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content" id="main-content">
+    <div id="navbar-root"></div>
+
+    <main class="page-content">
+
+      <!-- HEADER -->
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Contratos</h1>
+          <p>Gerencie todos os contratos de fornecedores de TI</p>
+        </div>
+        <div class="page-header-right">
+          <button class="btn btn-secondary btn-sm" id="btn-export-csv"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> CSV</button>
+          <button class="btn btn-primary" id="btn-novo-contrato"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Novo Contrato</button>
+        </div>
+      </div>
+
+      <!-- KPIs RÁPIDOS -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-md);margin-bottom:var(--sp-lg)" id="kpi-mini"></div>
+
+      <!-- FILTROS -->
+      <div class="filters-bar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        <input  class="form-control" id="f-busca"       placeholder="Buscar fornecedor, descrição…" style="max-width:240px" />
+        <select class="form-control" id="f-status">
+          <option value="">Todos os status</option>
+          <option>Ativo</option><option>Suspenso</option>
+          <option>Cancelado</option><option>Em renovação</option>
+        </select>
+        <select class="form-control" id="f-categoria">
+          <option value="">Todas as categorias</option>
+          <option>Software</option><option>Cloud</option><option>Telecom</option>
+          <option>Segurança</option><option>ERP</option><option>Infraestrutura</option>
+          <option>Suporte</option><option>Outros</option>
+        </select>
+        <select class="form-control" id="f-empresa">
+          <option value="">Todas as empresas</option>
+              <option>SUBCONDOMÍNIO</option><option>WA HOTEL</option>
+              <option>WS PARK</option><option>CORPORATE</option>
+              <option>ALSCC</option><option>WA EMPREENDIMENTOS IMOBILIARIOS LTDA</option>
+              <option>WA EMPREENDIMENTOS</option><option>WA</option>
+        </select>
+        <div class="filter-separator"></div>
+        <button class="btn btn-ghost btn-sm" id="btn-limpar-filtros">Limpar</button>
+        <div style="margin-left:auto;font-size:12px;color:var(--c-text-3)" id="filtro-count"></div>
+      </div>
+
+      <!-- TABELA -->
+      <div class="card">
+        <div class="table-container" style="border:none">
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="id">ID</th>
+                <th data-sort="empresa">Empresa</th>
+                <th data-sort="fornecedor">Fornecedor</th>
+                <th data-sort="descricao">Descrição</th>
+                <th data-sort="categoria">Categoria</th>
+                <th data-sort="valor_mensal">Valor Mensal</th>
+                <th data-sort="data_fim">Vencimento</th>
+                <th data-sort="status">Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-contratos"></tbody>
+          </table>
+        </div>
+        <div class="card-footer" style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:12px;color:var(--c-text-3)" id="paginacao-info"></div>
+          <div id="paginacao-controles"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL — CADASTRO / EDIÇÃO DE CONTRATO
+══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-contrato">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-contrato-title">Novo Contrato</div>
+        <div class="modal-subtitle" id="modal-contrato-id"></div>
+      </div>
+      <button class="modal-close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <form id="form-contrato" novalidate>
+
+        <div class="section-divider"><span class="section-divider-title">Informações Gerais</span></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Empresa <span class="required">*</span></label>
+            <select class="form-control" id="c-empresa" required>
+              <option value="">Selecione…</option>
+              <option>SUBCONDOMÍNIO</option><option>WA HOTEL</option>
+              <option>WS PARK</option><option>CORPORATE</option>
+              <option>ALSCC</option><option>WA EMPREENDIMENTOS IMOBILIARIOS LTDA</option>
+              <option>WA EMPREENDIMENTOS</option><option>WA</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fornecedor <span class="required">*</span></label>
+            <input class="form-control" id="c-fornecedor" placeholder="Nome do fornecedor" required />
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Descrição do Contrato <span class="required">*</span></label>
+            <input class="form-control" id="c-descricao" placeholder="Descreva o objeto do contrato" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoria <span class="required">*</span></label>
+            <select class="form-control" id="c-categoria" required>
+              <option value="">Selecione…</option>
+              <option>Software</option><option>Cloud</option><option>Telecom</option>
+              <option>Segurança</option><option>ERP</option><option>Infraestrutura</option>
+              <option>Suporte</option><option>Outros</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Centro de Custo <span class="required">*</span></label>
+            <select class="form-control" id="c-centro-custo" required>
+              <option value="">Selecione…</option>
+              <option>TI</option><option>Administrativo</option><option>Operacional</option>
+              <option>TI / Hotel</option><option>TI / Estacionamento</option>
+              <option>Marketing</option><option>RH</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Responsável <span class="required">*</span></label>
+            <select class="form-control" id="c-responsavel" required>
+              <option value="">Selecione…</option>
+              <option>Chris Robin</option><option>Davydson</option><option>Bruno</option>
+              <option>Thiago</option><option>Karenina</option><option>Eduardo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="section-divider"><span class="section-divider-title">Valores e Periodicidade</span></div>
+        <div class="form-grid form-grid-3">
+          <div class="form-group">
+            <label class="form-label">Tipo de Cobrança <span class="required">*</span></label>
+            <select class="form-control" id="c-tipo" required>
+              <option value="">Selecione…</option>
+              <option>Mensal</option><option>Bimestral</option><option>Trimestral</option>
+              <option>Semestral</option><option>Anual</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Valor Mensal (R$) <span class="required">*</span></label>
+            <input class="form-control" id="c-valor-mensal" placeholder="0,00" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Valor Anual (R$)</label>
+            <input class="form-control" id="c-valor-anual" placeholder="Calculado automaticamente" readonly style="background:var(--c-ice)" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data de Início <span class="required">*</span></label>
+            <input type="date" class="form-control" id="c-data-inicio" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data de Término <span class="required">*</span></label>
+            <input type="date" class="form-control" id="c-data-fim" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Dia Padrão de Vencimento</label>
+            <input type="number" class="form-control" id="c-dia-venc" min="1" max="31" placeholder="Ex: 10" />
+          </div>
+        </div>
+
+        <div class="section-divider"><span class="section-divider-title">Status e Observações</span></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Status <span class="required">*</span></label>
+            <select class="form-control" id="c-status" required>
+              <option>Ativo</option><option>Suspenso</option>
+              <option>Cancelado</option><option>Em renovação</option>
+            </select>
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Observações</label>
+            <textarea class="form-control" id="c-obs" rows="3" placeholder="Informações adicionais…"></textarea>
+          </div>
+        </div>
+
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="Modal.close('modal-contrato')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-contrato"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar Contrato</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL — DETALHE DO CONTRATO
+══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-detalhe">
+  <div class="modal modal-xl">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="detalhe-avatar" style="width:44px;height:44px;border-radius:var(--r-md);background:var(--c-teal-light);
+             display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--c-teal);flex-shrink:0"></div>
+        <div>
+          <div class="modal-title" id="detalhe-title"></div>
+          <div class="modal-subtitle" id="detalhe-subtitle"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-secondary btn-sm" id="btn-editar-detalhe"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar</button>
+        <button class="modal-close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </div>
+    <div class="modal-body" id="modal-detalhe-body">
+      <!-- injetado dinamicamente -->
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/utils.js"></script>
+<script>
+/* ── INIT ──────────────────────────────────────────────── */
+document.getElementById('sidebar-root').innerHTML = getSidebarHTML();
+document.getElementById('navbar-root').innerHTML  = getNavbarHTML('Contratos', [
+  { label:'Dashboard', url:'index.html' }, { label:'Contratos' }
+]);
+initApp();
+
+/* ── STATE ─────────────────────────────────────────────── */
+let _contratos = [];
+let _filtrados = [];
+let _sortCol   = 'fornecedor';
+let _sortDir   = 'asc';
+let _editId    = null;
+const pag = new Paginator(12);
+
+/* ── BUSCA PARAMS URL ──────────────────────────────────── */
+const urlParams = new URLSearchParams(location.search);
+if (urlParams.get('busca')) document.getElementById('f-busca').value = urlParams.get('busca');
+if (urlParams.get('id'))    window.addEventListener('DOMContentLoaded', () => abrirDetalhe(urlParams.get('id')));
+
+/* ── CARREGAR ───────────────────────────────────────────── */
+async function carregar() {
+  try {
+    _contratos = await API.listarContratos();
+    renderKPIsMini();
+    aplicarFiltros();
+  } catch(e) { Toast.error('Erro ao carregar: ' + e.message); }
+}
+
+/* ── KPIs MINI ─────────────────────────────────────────── */
+function renderKPIsMini() {
+  const hoje = new Date();
+  const ativos    = _contratos.filter(c => c.status === 'Ativo').length;
+  const vencidos  = _contratos.filter(c => c.status === 'Ativo' && new Date(c.data_fim) < hoje).length;
+  const renovacao = _contratos.filter(c => c.status === 'Em renovação').length;
+  const valorTotal = _contratos.filter(c=>c.status==='Ativo').reduce((s,c)=>s+(parseFloat(c.valor_mensal)||0),0);
+
+  const kpis = [
+    { label:'Total', value: _contratos.length, color:'#3B82F6', bg:'#EFF6FF', icon:'file-text' },
+    { label:'Ativos', value: ativos, color:'#059669', bg:'#ECFDF5', icon:'check' },
+    { label:'Vencidos', value: vencidos, color:'#DC2626', bg:'#FEF2F2', icon:'alert-triangle' },
+    { label:'Valor Mensal', value: Fmt.moeda(valorTotal), color:'#0891B2', bg:'#E0F2FE', icon:'dollar-sign', text:true },
+  ];
+  document.getElementById('kpi-mini').innerHTML = kpis.map(k => `
+    <div class="kpi-card" style="--kpi-color:${k.color};--kpi-bg:${k.bg};padding:16px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="kpi-icon" style="width:32px;height:32px;margin:0">${icon(k.icon,16)}</div>
+        <div>
+          <div class="kpi-value" style="font-size:${k.text?'15px':'20px'}">${k.value}</div>
+          <div class="kpi-label">${k.label}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+/* ── FILTROS ────────────────────────────────────────────── */
+function aplicarFiltros() {
+  const busca    = document.getElementById('f-busca').value.toLowerCase().trim();
+  const status   = document.getElementById('f-status').value;
+  const cat      = document.getElementById('f-categoria').value;
+  const empresa  = document.getElementById('f-empresa').value;
+
+  _filtrados = _contratos.filter(c => {
+    if (status  && c.status    !== status)  return false;
+    if (cat     && c.categoria !== cat)     return false;
+    if (empresa && c.empresa   !== empresa) return false;
+    if (busca && ![c.fornecedor,c.descricao,c.id,c.responsavel].some(v => v?.toLowerCase().includes(busca))) return false;
+    return true;
+  });
+
+  _filtrados = sortTable(_filtrados, _sortCol, _sortDir);
+  pag.setTotal(_filtrados.length);
+  document.getElementById('filtro-count').textContent = `${_filtrados.length} de ${_contratos.length} registros`;
+  renderTabela();
+  renderPaginacao();
+}
+
+['f-busca','f-status','f-categoria','f-empresa'].forEach(id => {
+  document.getElementById(id).addEventListener('input', debounce(aplicarFiltros, 250));
+});
+
+document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+  ['f-busca','f-status','f-categoria','f-empresa'].forEach(id => document.getElementById(id).value = '');
+  aplicarFiltros();
+});
+
+/* ── ORDENAÇÃO ──────────────────────────────────────────── */
+document.querySelectorAll('thead th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if (_sortCol === col) _sortDir = _sortDir === 'asc' ? 'desc' : 'asc';
+    else { _sortCol = col; _sortDir = 'asc'; }
+    document.querySelectorAll('thead th').forEach(t => t.classList.remove('sort-asc','sort-desc'));
+    th.classList.add(_sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    aplicarFiltros();
+  });
+});
+
+/* ── TABELA ─────────────────────────────────────────────── */
+function renderTabela() {
+  const page = pag.slice(_filtrados);
+  const tbody = document.getElementById('tbody-contratos');
+
+  if (!page.length) {
+    tbody.innerHTML = `<tr><td colspan="9">
+      <div class="empty-state">${icon('file-text')}
+        <h3>Nenhum contrato encontrado</h3>
+        <p>Tente ajustar os filtros ou cadastre um novo contrato.</p>
+      </div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = page.map(c => {
+    const dias = Fmt.diasRestantes(c.data_fim);
+    const alertaVenc = dias !== null && dias >= 0 && dias <= 30
+      ? `<div style="font-size:10px;margin-top:2px">${Status.vencimentoContrato(c.data_fim, c.status)}</div>` : '';
+
+    return `<tr>
+      <td class="mono">${c.id}</td>
+      <td>
+        <div style="font-size:11px;color:var(--c-text-3)">${c.empresa}</div>
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px;border-radius:var(--r-full);background:var(--c-teal-light);
+               display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;
+               color:var(--c-teal);flex-shrink:0">${Fmt.initials(c.fornecedor)}</div>
+          <div>
+            <div style="font-weight:600;color:var(--c-text-1);font-size:13px">${c.fornecedor}</div>
+            <div style="font-size:11px;color:var(--c-text-3)">${c.responsavel}</div>
+          </div>
+        </div>
+      </td>
+      <td style="max-width:220px">
+        <div class="truncate" title="${c.descricao}">${c.descricao}</div>
+      </td>
+      <td><span class="badge badge-info">${c.categoria || '—'}</span></td>
+      <td>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600">${Fmt.moeda(c.valor_mensal)}</div>
+        <div style="font-size:10px;color:var(--c-text-3)">/mês</div>
+      </td>
+      <td>
+        <div style="font-size:12px">${Fmt.data(c.data_fim)}</div>
+        ${alertaVenc}
+      </td>
+      <td>${Status.badgeContrato(c.status)}</td>
+      <td>
+        <div class="table-actions">
+          <button class="btn btn-ghost btn-sm btn-icon" data-tooltip="Ver detalhes" onclick="abrirDetalhe('${c.id}')">${icon('eye',14)}</button>
+          <button class="btn btn-ghost btn-sm btn-icon" data-tooltip="Editar" onclick="abrirEdicao('${c.id}')">${icon('edit',14)}</button>
+          <button class="btn btn-ghost btn-sm btn-icon" data-tooltip="Excluir" style="color:var(--c-danger)" onclick="excluirContrato('${c.id}')">${icon('trash',14)}</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── PAGINAÇÃO ──────────────────────────────────────────── */
+function renderPaginacao() {
+  document.getElementById('paginacao-info').textContent =
+    `Exibindo ${pag.slice(_filtrados).length} de ${_filtrados.length} contratos`;
+  document.getElementById('paginacao-controles').innerHTML =
+    pag.renderHTML(function(p){ pag.page=p; renderTabela(); renderPaginacao(); });
+}
+
+/* ── MODAL CADASTRO ─────────────────────────────────────── */
+document.getElementById('btn-novo-contrato').addEventListener('click', () => {
+  _editId = null;
+  document.getElementById('modal-contrato-title').textContent = 'Novo Contrato';
+  document.getElementById('modal-contrato-id').textContent    = '';
+  document.getElementById('form-contrato').reset();
+  document.getElementById('c-status').value = 'Ativo';
+  Modal.open('modal-contrato');
+});
+
+function abrirEdicao(id) {
+  const c = _contratos.find(x => x.id === id);
+  if (!c) return;
+  _editId = id;
+  document.getElementById('modal-contrato-title').textContent = 'Editar Contrato';
+  document.getElementById('modal-contrato-id').textContent    = id;
+
+  // Preencher campos
+  document.getElementById('c-empresa').value       = c.empresa       || '';
+  document.getElementById('c-fornecedor').value    = c.fornecedor    || '';
+  document.getElementById('c-descricao').value     = c.descricao     || '';
+  document.getElementById('c-categoria').value     = c.categoria     || '';
+  document.getElementById('c-centro-custo').value  = c.centro_custo  || '';
+  document.getElementById('c-responsavel').value   = c.responsavel   || '';
+  document.getElementById('c-tipo').value          = c.tipo          || '';
+  document.getElementById('c-valor-mensal').value  = c.valor_mensal  ? `R$ ${parseFloat(c.valor_mensal).toFixed(2).replace('.',',')}` : '';
+  document.getElementById('c-valor-anual').value   = c.valor_anual   ? Fmt.moeda(c.valor_anual) : '';
+  document.getElementById('c-data-inicio').value   = c.data_inicio   || '';
+  document.getElementById('c-data-fim').value      = c.data_fim      || '';
+  document.getElementById('c-dia-venc').value      = c.dia_vencimento|| '';
+  document.getElementById('c-status').value        = c.status        || 'Ativo';
+  document.getElementById('c-obs').value           = c.observacoes   || '';
+
+  Modal.open('modal-contrato');
+}
+
+// Auto-calcular valor anual
+document.getElementById('c-valor-mensal').addEventListener('input', function() {
+  const v = parseMoeda(this.value);
+  document.getElementById('c-valor-anual').value = v ? Fmt.moeda(v * 12) : '';
+});
+maskMoeda(document.getElementById('c-valor-mensal'));
+
+// Salvar
+document.getElementById('btn-salvar-contrato').addEventListener('click', async () => {
+  const form = document.getElementById('form-contrato');
+  if (!Validate.form(form)) { Toast.warning('Preencha os campos obrigatórios.'); return; }
+
+  const btn = document.getElementById('btn-salvar-contrato');
+  Loading.show(btn);
+
+  const valorMensal = parseMoeda(document.getElementById('c-valor-mensal').value);
+
+  const payload = {
+    id:            _editId || undefined,
+    empresa:       document.getElementById('c-empresa').value,
+    fornecedor:    document.getElementById('c-fornecedor').value,
+    descricao:     document.getElementById('c-descricao').value,
+    categoria:     document.getElementById('c-categoria').value,
+    centro_custo:  document.getElementById('c-centro-custo').value,
+    responsavel:   document.getElementById('c-responsavel').value,
+    tipo:          document.getElementById('c-tipo').value,
+    valor_mensal:  valorMensal,
+    valor_anual:   valorMensal * 12,
+    data_inicio:   document.getElementById('c-data-inicio').value,
+    data_fim:      document.getElementById('c-data-fim').value,
+    dia_vencimento:parseInt(document.getElementById('c-dia-venc').value) || null,
+    status:        document.getElementById('c-status').value,
+    observacoes:   document.getElementById('c-obs').value,
+  };
+
+  try {
+    await API.salvarContrato(payload);
+    Toast.success(_editId ? 'Contrato atualizado!' : 'Contrato cadastrado!');
+    Modal.close('modal-contrato');
+    await carregar();
+  } catch(e) {
+    Toast.error('Erro ao salvar: ' + e.message);
+  } finally {
+    Loading.hide(btn);
+  }
+});
+
+/* ── EXCLUIR ────────────────────────────────────────────── */
+async function excluirContrato(id) {
+  const c = _contratos.find(x => x.id === id);
+  Modal.confirm(
+    `Excluir o contrato "${c?.descricao || id}"? Esta ação não pode ser desfeita.`,
+    async () => {
+      try {
+        await API.excluirContrato(id);
+        Toast.success('Contrato excluído.');
+        await carregar();
+      } catch(e) { Toast.error(e.message); }
+    }
+  );
+}
+
+/* ── DETALHE ────────────────────────────────────────────── */
+async function abrirDetalhe(id) {
+  const c = _contratos.find(x => x.id === id) || await API.obterContrato(id);
+  if (!c) return Toast.error('Contrato não encontrado.');
+
+  document.getElementById('detalhe-avatar').textContent    = Fmt.initials(c.fornecedor);
+  document.getElementById('detalhe-title').textContent     = c.fornecedor;
+  document.getElementById('detalhe-subtitle').textContent  = `${c.id} · ${c.descricao}`;
+  document.getElementById('btn-editar-detalhe').onclick    = () => { Modal.close('modal-detalhe'); abrirEdicao(id); };
+
+  // Buscar movimentações
+  const movs = await API.listarMovimentacoes(id);
+  const totalPago = movs.filter(m=>m.status==='Pago').reduce((s,m)=>s+(parseFloat(m.valor_nota)||0),0);
+  const totalPend = movs.filter(m=>m.status!=='Pago').reduce((s,m)=>s+(parseFloat(m.valor_nota)||0),0);
+  const dias = Fmt.diasRestantes(c.data_fim);
+
+  document.getElementById('modal-detalhe-body').innerHTML = `
+
+    <!-- STATUS BANNER -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+      ${Status.badgeContrato(c.status)}
+      <span class="badge badge-info">${c.categoria}</span>
+      <span class="badge badge-neutral">${c.tipo}</span>
+      ${dias !== null ? `<span class="badge ${dias<0?'badge-danger':dias<=30?'badge-warning':'badge-neutral'}">${dias<0?'Vencido':dias+'d restantes'}</span>` : ''}
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs" id="detalhe-tabs">
+      <div class="tab-item active" data-tab="info">Informações</div>
+      <div class="tab-item" data-tab="movimentos">Movimentações (${movs.length})</div>
+      <div class="tab-item" data-tab="financeiro">Financeiro</div>
+      <div class="tab-item" data-tab="timeline">Linha do Tempo</div>
+    </div>
+
+    <!-- TAB INFO -->
+    <div id="tab-info">
+      <div class="info-grid">
+        <div class="info-item"><div class="info-label">Empresa</div><div class="info-value">${c.empresa}</div></div>
+        <div class="info-item"><div class="info-label">Fornecedor</div><div class="info-value">${c.fornecedor}</div></div>
+        <div class="info-item"><div class="info-label">Centro de Custo</div><div class="info-value">${c.centro_custo}</div></div>
+        <div class="info-item"><div class="info-label">Responsável</div><div class="info-value">${c.responsavel}</div></div>
+        <div class="info-item"><div class="info-label">Tipo</div><div class="info-value">${c.tipo}</div></div>
+        <div class="info-item"><div class="info-label">Dia de Vencimento</div><div class="info-value">${c.dia_vencimento ? 'Todo dia ' + c.dia_vencimento : '—'}</div></div>
+        <div class="info-item"><div class="info-label">Início</div><div class="info-value">${Fmt.data(c.data_inicio)}</div></div>
+        <div class="info-item"><div class="info-label">Término</div><div class="info-value">${Fmt.data(c.data_fim)}</div></div>
+        <div class="info-item"><div class="info-label">Valor Mensal</div><div class="info-value" style="color:var(--c-navy);font-weight:700;font-size:18px">${Fmt.moeda(c.valor_mensal)}</div></div>
+        <div class="info-item"><div class="info-label">Valor Anual</div><div class="info-value">${Fmt.moeda(c.valor_anual)}</div></div>
+        <div class="info-item form-full"><div class="info-label">Descrição</div><div class="info-value">${c.descricao}</div></div>
+        ${c.observacoes ? `<div class="info-item form-full"><div class="info-label">Observações</div><div class="info-value" style="color:var(--c-text-3)">${c.observacoes}</div></div>` : ''}
+      </div>
+    </div>
+
+    <!-- TAB MOVIMENTOS -->
+    <div id="tab-movimentos" class="hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:12px;color:var(--c-text-3)">${movs.length} movimentações registradas</span>
+        <button class="btn btn-primary btn-sm" onclick="abrirNovaMovimentacao('${c.id}')">
+          ${icon('plus',13)} Nova Movimentação
+        </button>
+      </div>
+      ${movs.length ? `
+      <div class="table-container">
+        <table>
+          <thead><tr>
+            <th>Mês/Ano</th><th>NF</th><th>Boleto</th>
+            <th>Valor</th><th>Vencimento</th><th>Pagamento</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody>
+          ${movs.sort((a,b)=> b.ano-a.ano || b.mes-a.mes).map(m => `
+            <tr>
+              <td style="font-weight:600">${Fmt.mesAno(m.mes, m.ano)}</td>
+              <td class="mono">${m.numero_nf || '—'}</td>
+              <td class="mono">${m.numero_boleto || '—'}</td>
+              <td style="font-weight:600;font-family:'JetBrains Mono',monospace">${Fmt.moeda(m.valor_nota)}</td>
+              <td>${Fmt.data(m.data_vencimento)}</td>
+              <td>${m.data_pagamento ? Fmt.data(m.data_pagamento) : '<span style="color:var(--c-text-4)">—</span>'}</td>
+              <td>${Status.badgeMovimentacao(m.status)}</td>
+              <td>
+                <div class="table-actions">
+                  <button class="btn btn-ghost btn-sm btn-icon" onclick="editarMovimentacao(${JSON.stringify(m).replace(/"/g,'&quot;')})">${icon('edit',13)}</button>
+                  <button class="btn btn-ghost btn-sm btn-icon" style="color:var(--c-danger)" onclick="excluirMovimentacao('${m.id_movimento}','${c.id}')">${icon('trash',13)}</button>
+                </div>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : `
+      <div class="empty-state">${icon('calendar')}
+        <h3>Sem movimentações</h3>
+        <p>Clique em "Nova Movimentação" para registrar.</p>
+      </div>`}
+    </div>
+
+    <!-- TAB FINANCEIRO -->
+    <div id="tab-financeiro" class="hidden">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+        <div class="kpi-card" style="--kpi-color:#059669;--kpi-bg:#ECFDF5">
+          <div class="kpi-icon">${icon('check',18)}</div>
+          <div class="kpi-value" style="font-size:20px">${Fmt.moeda(totalPago)}</div>
+          <div class="kpi-label">Total Pago</div>
+        </div>
+        <div class="kpi-card" style="--kpi-color:#DC2626;--kpi-bg:#FEF2F2">
+          <div class="kpi-icon">${icon('clock',18)}</div>
+          <div class="kpi-value" style="font-size:20px">${Fmt.moeda(totalPend)}</div>
+          <div class="kpi-label">Total Pendente</div>
+        </div>
+        <div class="kpi-card" style="--kpi-color:#0891B2;--kpi-bg:#E0F2FE">
+          <div class="kpi-icon">${icon('trending-up',18)}</div>
+          <div class="kpi-value" style="font-size:20px">${Fmt.moeda(totalPago+totalPend)}</div>
+          <div class="kpi-label">Total Geral</div>
+        </div>
+      </div>
+      <!-- Mini gráfico de barras por mês -->
+      <div style="font-size:12px;font-weight:600;color:var(--c-text-2);margin-bottom:12px">Pagamentos por mês</div>
+      <div style="display:flex;gap:6px;align-items:flex-end;height:100px">
+        ${movs.sort((a,b)=>a.ano-b.ano||a.mes-b.mes).map(m => {
+          const h = m.data_pagamento ? Math.max(8, Math.round((parseFloat(m.valor_nota)||0) / (Math.max(...movs.map(x=>parseFloat(x.valor_nota)||0))||1) * 80)) : 8;
+          return `<div title="${Fmt.mesAno(m.mes,m.ano)}: ${Fmt.moeda(m.valor_nota)}" style="flex:1;max-width:40px">
+            <div style="height:${h}px;background:${m.data_pagamento?'var(--c-success)':'var(--c-border)'};
+                 border-radius:4px 4px 0 0;min-height:4px;cursor:pointer"></div>
+            <div style="font-size:9px;color:var(--c-text-3);text-align:center;margin-top:4px">${String(m.mes).padStart(2,'0')}/${String(m.ano).slice(-2)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- TAB TIMELINE -->
+    <div id="tab-timeline" class="hidden">
+      <div class="timeline">
+        ${[...movs].sort((a,b)=>b.ano-a.ano||b.mes-a.mes).map(m => `
+        <div class="timeline-item ${m.status==='Pago'?'success':m.status==='Em atraso'?'danger':''}">
+          <div class="timeline-date">${Fmt.mesNome(m.mes)} ${m.ano}</div>
+          <div class="timeline-title">${Status.badgeMovimentacao(m.status)} ${Fmt.moeda(m.valor_nota)}</div>
+          <div class="timeline-body">
+            ${m.numero_nf ? `NF: ${m.numero_nf}` : ''}
+            ${m.numero_boleto ? ` · Boleto: ${m.numero_boleto}` : ''}
+            ${m.data_vencimento ? ` · Venc: ${Fmt.data(m.data_vencimento)}` : ''}
+            ${m.data_pagamento  ? ` · Pago: ${Fmt.data(m.data_pagamento)}`  : ''}
+          </div>
+        </div>`).join('') || '<div class="text-muted text-sm">Sem histórico ainda.</div>'}
+      </div>
+    </div>
+  `;
+
+  // Tabs do detalhe
+  document.getElementById('detalhe-tabs').querySelectorAll('.tab-item').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#detalhe-tabs .tab-item').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      ['info','movimentos','financeiro','timeline'].forEach(t =>
+        document.getElementById('tab-' + t)?.classList.add('hidden'));
+      document.getElementById('tab-' + tab.dataset.tab)?.classList.remove('hidden');
+    });
+  });
+
+  Modal.open('modal-detalhe');
+}
+
+/* ── MODAL MOVIMENTAÇÃO ─────────────────────────────────── */
+let _movEditData = null;
+let _movContratoId = null;
+
+function abrirNovaMovimentacao(id_contrato) {
+  _movEditData   = null;
+  _movContratoId = id_contrato;
+  preencherModalMov({});
+}
+
+function editarMovimentacao(m) {
+  _movEditData   = m;
+  _movContratoId = m.id_contrato;
+  preencherModalMov(m);
+}
+
+function preencherModalMov(m) {
+  let overlay = document.getElementById('modal-mov');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'modal-mov';
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal modal-lg">
+        <div class="modal-header">
+          <div><div class="modal-title" id="mov-title">Nova Movimentação</div></div>
+          <button class="modal-close">${icon('x',16)}</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid form-grid-3">
+            <div class="form-group"><label class="form-label">Mês <span class="required">*</span></label>
+              <select class="form-control" id="m-mes" required>
+                ${Array.from({length:12},(_,i)=>`<option value="${i+1}">${Fmt.mesNome(i+1)}</option>`).join('')}
+              </select></div>
+            <div class="form-group"><label class="form-label">Ano <span class="required">*</span></label>
+              <input type="number" class="form-control" id="m-ano" min="2020" max="2099" required /></div>
+            <div class="form-group"><label class="form-label">Valor da NF <span class="required">*</span></label>
+              <input class="form-control" id="m-valor" placeholder="0,00" required /></div>
+            <div class="form-group"><label class="form-label">Número da NF</label>
+              <input class="form-control" id="m-nf" placeholder="NF-2024-01-001" /></div>
+            <div class="form-group"><label class="form-label">Número do Boleto</label>
+              <input class="form-control" id="m-boleto" placeholder="BOL-…" /></div>
+            <div class="form-group"><label class="form-label">Status <span class="required">*</span></label>
+              <select class="form-control" id="m-status" required>
+                <option>Pendente</option><option>Recebido</option>
+                <option>Enviado ao Financeiro</option><option>Pago</option><option>Em atraso</option>
+              </select></div>
+            <div class="form-group"><label class="form-label">Data Emissão NF</label>
+              <input type="date" class="form-control" id="m-emissao-nf" /></div>
+            <div class="form-group"><label class="form-label">Recebimento NF</label>
+              <input type="date" class="form-control" id="m-rec-nf" /></div>
+            <div class="form-group"><label class="form-label">Recebimento Boleto</label>
+              <input type="date" class="form-control" id="m-rec-boleto" /></div>
+            <div class="form-group"><label class="form-label">Envio ao Financeiro</label>
+              <input type="date" class="form-control" id="m-envio-fin" /></div>
+            <div class="form-group"><label class="form-label">Data de Vencimento</label>
+              <input type="date" class="form-control" id="m-vencimento" /></div>
+            <div class="form-group"><label class="form-label">Data de Pagamento</label>
+              <input type="date" class="form-control" id="m-pagamento" /></div>
+            <div class="form-group" style="grid-column:1/-1"><label class="form-label">Observações</label>
+              <textarea class="form-control" id="m-obs" rows="2"></textarea></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="Modal.close('modal-mov')">Cancelar</button>
+          <button class="btn btn-primary" id="btn-salvar-mov">${icon('save',14)} Salvar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    maskMoeda(document.getElementById('m-valor'));
+    document.getElementById('btn-salvar-mov').addEventListener('click', salvarMovimentacao);
+  }
+
+  const hoje = new Date();
+  document.getElementById('mov-title').textContent = m.id_movimento ? 'Editar Movimentação' : 'Nova Movimentação';
+  document.getElementById('m-mes').value         = m.mes      || (hoje.getMonth()+1);
+  document.getElementById('m-ano').value         = m.ano      || hoje.getFullYear();
+  document.getElementById('m-valor').value       = m.valor_nota ? `R$ ${parseFloat(m.valor_nota).toFixed(2).replace('.',',')}` : '';
+  document.getElementById('m-nf').value          = m.numero_nf || '';
+  document.getElementById('m-boleto').value      = m.numero_boleto || '';
+  document.getElementById('m-status').value      = m.status   || 'Pendente';
+  document.getElementById('m-emissao-nf').value  = m.data_emissao_nf || '';
+  document.getElementById('m-rec-nf').value      = m.data_recebimento_nf || '';
+  document.getElementById('m-rec-boleto').value  = m.data_recebimento_boleto || '';
+  document.getElementById('m-envio-fin').value   = m.data_envio_financeiro || '';
+  document.getElementById('m-vencimento').value  = m.data_vencimento || '';
+  document.getElementById('m-pagamento').value   = m.data_pagamento  || '';
+  document.getElementById('m-obs').value         = m.observacoes || '';
+
+  Modal.open('modal-mov');
+}
+
+async function salvarMovimentacao() {
+  const btn = document.getElementById('btn-salvar-mov');
+  Loading.show(btn);
+  try {
+    const payload = {
+      id_movimento:            _movEditData?.id_movimento || undefined,
+      id_contrato:             _movContratoId,
+      mes:                     parseInt(document.getElementById('m-mes').value),
+      ano:                     parseInt(document.getElementById('m-ano').value),
+      valor_nota:              parseMoeda(document.getElementById('m-valor').value),
+      numero_nf:               document.getElementById('m-nf').value,
+      numero_boleto:           document.getElementById('m-boleto').value,
+      status:                  document.getElementById('m-status').value,
+      data_emissao_nf:         document.getElementById('m-emissao-nf').value,
+      data_recebimento_nf:     document.getElementById('m-rec-nf').value,
+      data_recebimento_boleto: document.getElementById('m-rec-boleto').value,
+      data_envio_financeiro:   document.getElementById('m-envio-fin').value,
+      data_vencimento:         document.getElementById('m-vencimento').value,
+      data_pagamento:          document.getElementById('m-pagamento').value,
+      observacoes:             document.getElementById('m-obs').value,
+      usuario:                 'Rafael',
+    };
+    await API.salvarMovimentacao(payload);
+    Toast.success('Movimentação salva!');
+    Modal.close('modal-mov');
+    // Reabrir detalhe para atualizar
+    Modal.close('modal-detalhe');
+    await carregar();
+    abrirDetalhe(_movContratoId);
+  } catch(e) { Toast.error(e.message); }
+  finally { Loading.hide(btn); }
+}
+
+async function excluirMovimentacao(id_mov, id_contrato) {
+  Modal.confirm('Excluir esta movimentação?', async () => {
+    try {
+      await API.excluirMovimentacao(id_mov);
+      Toast.success('Movimentação excluída.');
+      Modal.close('modal-detalhe');
+      await carregar();
+      abrirDetalhe(id_contrato);
+    } catch(e) { Toast.error(e.message); }
+  });
+}
+
+/* ── EXPORTAR CSV ───────────────────────────────────────── */
+document.getElementById('btn-export-csv').addEventListener('click', () => {
+  Export.csv(_filtrados.map(c => ({
+    ID:           c.id,
+    Empresa:      c.empresa,
+    Fornecedor:   c.fornecedor,
+    Descrição:    c.descricao,
+    Categoria:    c.categoria,
+    'Centro Custo': c.centro_custo,
+    Responsável:  c.responsavel,
+    Tipo:         c.tipo,
+    'Valor Mensal': c.valor_mensal,
+    'Valor Anual':  c.valor_anual,
+    'Data Início':  c.data_inicio,
+    'Data Término': c.data_fim,
+    'Dia Venc':   c.dia_vencimento,
+    Status:       c.status,
+  })), 'contratos-ti');
+});
+
+/* ── START ─────────────────────────────────────────────── */
+carregar();
+</script>
+</body>
+</html>

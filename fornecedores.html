@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fornecedores — Gestão de Contratos TI</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div id="navbar-root"></div>
+    <main class="page-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Fornecedores</h1>
+          <p>Cadastro e gestão de fornecedores de TI</p>
+        </div>
+        <div class="page-header-right">
+          <button class="btn btn-secondary btn-sm" id="btn-export-forn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            CSV
+          </button>
+          <button class="btn btn-primary" id="btn-novo-forn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Novo Fornecedor
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-md);margin-bottom:var(--sp-lg)" id="kpi-forn">
+        <div class="kpi-card"><div class="skeleton" style="height:60px;border-radius:8px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="height:60px;border-radius:8px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="height:60px;border-radius:8px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="height:60px;border-radius:8px"></div></div>
+      </div>
+
+      <!-- FILTROS -->
+      <div class="filters-bar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        <input class="form-control" id="f-busca-forn" placeholder="Buscar fornecedor, CNPJ, contato…" style="max-width:280px" />
+        <select class="form-control" id="f-cat-forn" style="max-width:180px">
+          <option value="">Todas as categorias</option>
+          <option>Software</option><option>Cloud</option><option>Telecom</option>
+          <option>Segurança</option><option>ERP</option><option>Infraestrutura</option>
+          <option>Suporte</option><option>Outros</option>
+        </select>
+        <select class="form-control" id="f-status-forn" style="max-width:130px">
+          <option value="">Todos</option><option>Ativo</option><option>Inativo</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="btn-limpar-forn">Limpar</button>
+        <div style="margin-left:auto;font-size:12px;color:var(--c-text-3)" id="forn-count"></div>
+      </div>
+
+      <!-- GRID -->
+      <div id="grid-fornecedores" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--sp-md)">
+        <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--c-text-3)">
+          <span class="spinner" style="display:inline-block"></span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL FORNECEDOR -->
+<div class="modal-overlay" id="modal-forn">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="forn-modal-title">Novo Fornecedor</div>
+        <div class="modal-subtitle" id="forn-modal-id"></div>
+      </div>
+      <button class="modal-close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label class="form-label">Razão Social / Nome <span style="color:var(--c-danger)">*</span></label>
+          <input class="form-control" id="fn-empresa" placeholder="Nome da empresa" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">CNPJ</label>
+          <input class="form-control" id="fn-cnpj" placeholder="00.000.000/0000-00" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoria <span style="color:var(--c-danger)">*</span></label>
+          <select class="form-control" id="fn-categoria" required>
+            <option value="">Selecione…</option>
+            <option>Software</option><option>Cloud</option><option>Telecom</option>
+            <option>Segurança</option><option>ERP</option><option>Infraestrutura</option>
+            <option>Suporte</option><option>Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome do Contato</label>
+          <input class="form-control" id="fn-contato" placeholder="Responsável pelo atendimento" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Telefone</label>
+          <input class="form-control" id="fn-telefone" placeholder="(81) 99900-0000" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input type="email" class="form-control" id="fn-email" placeholder="email@empresa.com" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-control" id="fn-status">
+            <option>Ativo</option><option>Inativo</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="Modal.close('modal-forn')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-forn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Salvar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/utils.js"></script>
+<script>
+document.getElementById('sidebar-root').innerHTML = getSidebarHTML();
+document.getElementById('navbar-root').innerHTML  = getNavbarHTML('Fornecedores', [
+  { label:'Dashboard', url:'index.html' }, { label:'Fornecedores' }
+]);
+initApp();
+
+let _fornecedores = [];
+let _contratos    = [];
+let _filtrados    = [];
+let _editId       = null;
+
+async function carregar() {
+  try {
+    [_fornecedores, _contratos] = await Promise.all([
+      API.listarFornecedores(),
+      API.listarContratos(),
+    ]);
+    aplicarFiltros();
+    renderKPIs();
+  } catch(e) {
+    document.getElementById('grid-fornecedores').innerHTML =
+      `<div style="grid-column:1/-1;padding:32px;text-align:center;color:var(--c-text-3)">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px">Erro ao carregar fornecedores</div>
+        <div style="font-size:12px;margin-bottom:16px">${e.message}</div>
+        <button class="btn btn-secondary btn-sm" onclick="carregar()">Tentar novamente</button>
+      </div>`;
+  }
+}
+
+function renderKPIs() {
+  const ativos  = _fornecedores.filter(f=>f.status==='Ativo').length;
+  const cats    = [...new Set(_fornecedores.map(f=>f.categoria).filter(Boolean))].length;
+  const comCtrt = _fornecedores.filter(f=>_contratos.some(c=>c.fornecedor===f.empresa&&c.status==='Ativo')).length;
+  const kpis = [
+    { label:'Total de Fornecedores', value:_fornecedores.length, color:'#3B82F6', bg:'#EFF6FF' },
+    { label:'Ativos',                value:ativos,               color:'#059669', bg:'#ECFDF5' },
+    { label:'Categorias',            value:cats,                 color:'#0891B2', bg:'#E0F2FE' },
+    { label:'Com Contratos Ativos',  value:comCtrt,             color:'#7C3AED', bg:'#EDE9FE' },
+  ];
+  document.getElementById('kpi-forn').innerHTML = kpis.map(k => `
+    <div class="kpi-card" style="--kpi-color:${k.color};--kpi-bg:${k.bg};padding:14px">
+      <div class="kpi-value" style="font-size:24px">${k.value}</div>
+      <div class="kpi-label">${k.label}</div>
+    </div>`).join('');
+}
+
+function aplicarFiltros() {
+  const busca  = document.getElementById('f-busca-forn').value.toLowerCase().trim();
+  const cat    = document.getElementById('f-cat-forn').value;
+  const status = document.getElementById('f-status-forn').value;
+
+  _filtrados = _fornecedores.filter(f => {
+    if (cat    && f.categoria !== cat)    return false;
+    if (status && f.status    !== status) return false;
+    if (busca  && ![f.empresa,f.cnpj,f.contato,f.email].some(v=>v?.toLowerCase().includes(busca))) return false;
+    return true;
+  });
+
+  document.getElementById('forn-count').textContent = `${_filtrados.length} de ${_fornecedores.length} fornecedores`;
+  renderGrid();
+}
+
+['f-busca-forn','f-cat-forn','f-status-forn'].forEach(id =>
+  document.getElementById(id).addEventListener('input', debounce(aplicarFiltros, 250)));
+document.getElementById('btn-limpar-forn').addEventListener('click', () => {
+  ['f-busca-forn','f-cat-forn','f-status-forn'].forEach(id => document.getElementById(id).value = '');
+  aplicarFiltros();
+});
+
+function renderGrid() {
+  const grid = document.getElementById('grid-fornecedores');
+  if (!_filtrados.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3;margin-bottom:12px"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      <h3>Nenhum fornecedor encontrado</h3>
+      <p>Tente ajustar os filtros ou cadastre um novo fornecedor.</p>
+      <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="abrirNovo()">+ Novo Fornecedor</button>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = _filtrados.map(f => {
+    const contratos   = _contratos.filter(c => c.fornecedor === f.empresa && c.status === 'Ativo');
+    const totalMensal = contratos.reduce((s,c) => s+(parseFloat(c.valor_mensal)||0), 0);
+    return `
+    <div class="card" style="transition:transform .15s,box-shadow .15s"
+         onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--sh-md)'"
+         onmouseout="this.style.transform='';this.style.boxShadow=''">
+      <div class="card-body" style="padding:var(--sp-md)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:44px;height:44px;border-radius:var(--r-md);background:var(--c-teal-light);
+                 display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--c-teal);flex-shrink:0">
+              ${Fmt.initials(f.empresa)}
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:14px;color:var(--c-text-1)">${f.empresa}</div>
+              <span class="badge badge-info" style="margin-top:2px">${f.categoria||'—'}</span>
+            </div>
+          </div>
+          <span class="badge ${f.status==='Ativo'?'badge-success':'badge-neutral'}">${f.status||'—'}</span>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--c-text-3);margin-bottom:12px">
+          ${f.cnpj     ? `<div>${Fmt.cnpj(f.cnpj)}</div>` : ''}
+          ${f.contato  ? `<div>Contato: ${f.contato}</div>` : ''}
+          ${f.telefone ? `<div>${Fmt.telefone(f.telefone)}</div>` : ''}
+          ${f.email    ? `<div><a href="mailto:${f.email}" style="color:var(--c-blue-light)">${f.email}</a></div>` : ''}
+        </div>
+
+        <div style="border-top:1px solid var(--c-border);padding-top:10px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:10px;color:var(--c-text-3);text-transform:uppercase;letter-spacing:.04em">Contratos ativos</div>
+            <div style="font-size:13px;font-weight:700;color:var(--c-text-1)">${contratos.length} contrato(s)</div>
+            ${totalMensal ? `<div style="font-size:11px;color:var(--c-teal);font-weight:600">${Fmt.moeda(totalMensal)}/mês</div>` : ''}
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirEdicao('${f.id_fornecedor}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" style="color:var(--c-danger)" onclick="excluir('${f.id_fornecedor}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirNovo() {
+  _editId = null;
+  document.getElementById('forn-modal-title').textContent = 'Novo Fornecedor';
+  document.getElementById('forn-modal-id').textContent    = '';
+  ['fn-empresa','fn-cnpj','fn-contato','fn-telefone','fn-email'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fn-categoria').value = '';
+  document.getElementById('fn-status').value    = 'Ativo';
+  Modal.open('modal-forn');
+}
+
+function abrirEdicao(id) {
+  const f = _fornecedores.find(x => x.id_fornecedor === id);
+  if (!f) return;
+  _editId = id;
+  document.getElementById('forn-modal-title').textContent = 'Editar Fornecedor';
+  document.getElementById('forn-modal-id').textContent    = id;
+  document.getElementById('fn-empresa').value   = f.empresa   || '';
+  document.getElementById('fn-cnpj').value      = Fmt.cnpj(f.cnpj) || '';
+  document.getElementById('fn-categoria').value = f.categoria || '';
+  document.getElementById('fn-contato').value   = f.contato   || '';
+  document.getElementById('fn-telefone').value  = Fmt.telefone(f.telefone) || '';
+  document.getElementById('fn-email').value     = f.email     || '';
+  document.getElementById('fn-status').value    = f.status    || 'Ativo';
+  Modal.open('modal-forn');
+}
+
+document.getElementById('btn-novo-forn').addEventListener('click', abrirNovo);
+
+document.getElementById('btn-salvar-forn').addEventListener('click', async () => {
+  if (!document.getElementById('fn-empresa').value.trim()) {
+    Toast.warning('Informe o nome do fornecedor.'); return;
+  }
+  const btn = document.getElementById('btn-salvar-forn');
+  Loading.show(btn);
+  try {
+    await API.salvarFornecedor({
+      id_fornecedor: _editId || undefined,
+      empresa:   document.getElementById('fn-empresa').value,
+      cnpj:      document.getElementById('fn-cnpj').value.replace(/\D/g,''),
+      categoria: document.getElementById('fn-categoria').value,
+      contato:   document.getElementById('fn-contato').value,
+      telefone:  document.getElementById('fn-telefone').value.replace(/\D/g,''),
+      email:     document.getElementById('fn-email').value,
+      status:    document.getElementById('fn-status').value,
+    });
+    Toast.success(_editId ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
+    Modal.close('modal-forn');
+    await carregar();
+  } catch(e) { Toast.error(e.message); }
+  finally { Loading.hide(btn); }
+});
+
+async function excluir(id) {
+  const f = _fornecedores.find(x => x.id_fornecedor === id);
+  Modal.confirm(`Excluir o fornecedor "${f?.empresa}"?`, async () => {
+    try {
+      await API.excluirFornecedor(id);
+      Toast.success('Fornecedor excluído.');
+      await carregar();
+    } catch(e) { Toast.error(e.message); }
+  });
+}
+
+document.getElementById('btn-export-forn').addEventListener('click', () => {
+  Export.csv(_filtrados.map(f => ({
+    ID: f.id_fornecedor, Empresa: f.empresa, CNPJ: f.cnpj,
+    Categoria: f.categoria, Contato: f.contato,
+    Telefone: f.telefone, Email: f.email, Status: f.status,
+  })), 'fornecedores-ti');
+});
+
+maskCnpj(document.getElementById('fn-cnpj'));
+maskTel(document.getElementById('fn-telefone'));
+carregar();
+</script>
+</body>
+</html>

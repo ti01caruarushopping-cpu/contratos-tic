@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financeiro — Gestão de Contratos TI</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div id="navbar-root"></div>
+
+    <main class="page-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Controle Financeiro</h1>
+          <p>Movimentações mensais — notas fiscais, boletos e pagamentos</p>
+        </div>
+        <div class="page-header-right">
+          <button class="btn btn-secondary btn-sm" id="btn-export-fin">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btn-print-fin">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Imprimir
+          </button>
+        </div>
+      </div>
+
+      <!-- BANNER CACHE/ERRO -->
+      <div id="cache-banner" style="display:none" class="alert alert-warning" style="margin-bottom:12px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span>Exibindo dados do cache — API indisponível no momento. Recarregue para tentar novamente.</span>
+      </div>
+
+      <!-- FILTROS PERÍODO -->
+      <div class="filters-bar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="font-size:12px;font-weight:600;color:var(--c-text-2);white-space:nowrap">Mês/Ano:</label>
+          <select class="form-control" id="f-mes" style="max-width:140px">
+            <option value="1">Janeiro</option>
+            <option value="2">Fevereiro</option>
+            <option value="3">Março</option>
+            <option value="4">Abril</option>
+            <option value="5">Maio</option>
+            <option value="6">Junho</option>
+            <option value="7">Julho</option>
+            <option value="8">Agosto</option>
+            <option value="9">Setembro</option>
+            <option value="10">Outubro</option>
+            <option value="11">Novembro</option>
+            <option value="12">Dezembro</option>
+          </select>
+          <select class="form-control" id="f-ano" style="max-width:100px"></select>
+        </div>
+        <div style="width:1px;height:28px;background:var(--c-border)"></div>
+        <select class="form-control" id="f-status-fin" style="max-width:200px">
+          <option value="">Todos os status</option>
+          <option>Pendente</option><option>Recebido</option>
+          <option>Enviado ao Financeiro</option><option>Pago</option><option>Em atraso</option>
+        </select>
+        <select class="form-control" id="f-empresa-fin" style="max-width:180px">
+          <option value="">Todas as empresas</option>
+          <option>Caruaru Shopping</option><option>WA Hotel</option>
+          <option>WS Park</option><option>Corporate</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="btn-limpar-fin">Limpar</button>
+        <button class="btn btn-ghost btn-sm" id="btn-refresh-fin">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        </button>
+      </div>
+
+      <!-- KPIs -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:var(--sp-md);margin-bottom:var(--sp-lg)" id="kpi-fin"></div>
+
+      <!-- ALERTAS -->
+      <div id="alertas-fin"></div>
+
+      <!-- TABELA -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title" id="titulo-tabela-fin">Movimentações do Período</div>
+            <div class="card-subtitle" id="subtitulo-tabela-fin"></div>
+          </div>
+        </div>
+        <div class="table-container" style="border:none">
+          <table>
+            <thead>
+              <tr>
+                <th>Contrato / Fornecedor</th>
+                <th>Empresa</th>
+                <th>NF</th>
+                <th>Boleto</th>
+                <th>Valor</th>
+                <th>Emissão NF</th>
+                <th>Receb. NF</th>
+                <th>Receb. Boleto</th>
+                <th>Envio Fin.</th>
+                <th>Vencimento</th>
+                <th>Pagamento</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-fin">
+              <tr><td colspan="13" style="text-align:center;padding:32px;color:var(--c-text-3)">
+                <span class="spinner" style="display:inline-block"></span>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer" style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:12px;color:var(--c-text-3)" id="fin-count"></div>
+          <div id="fin-paginacao"></div>
+        </div>
+      </div>
+
+      <!-- CARDS POR CONTRATO -->
+      <div style="margin-top:var(--sp-lg)">
+        <div style="display:flex;align-items:center;gap:var(--sp-md);margin:var(--sp-xl) 0 var(--sp-lg)">
+          <div style="flex:1;height:1px;background:var(--c-border)"></div>
+          <span style="font-size:11px;font-weight:700;color:var(--c-text-3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Visão por Contrato</span>
+          <div style="flex:1;height:1px;background:var(--c-border)"></div>
+        </div>
+        <div id="cards-contratos-fin" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:var(--sp-md)"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL EDIÇÃO DE MOVIMENTAÇÃO (abre diretamente no mês correto) -->
+<div class="modal-overlay" id="modal-mov">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="mov-title">Editar Movimentação</div>
+        <div class="modal-subtitle" id="mov-subtitle"></div>
+      </div>
+      <button class="modal-close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid form-grid-3" id="form-mov-grid">
+        <div class="form-group">
+          <label class="form-label">Mês <span style="color:var(--c-danger)">*</span></label>
+          <select class="form-control" id="m-mes">
+            <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+            <option value="3">Março</option><option value="4">Abril</option>
+            <option value="5">Maio</option><option value="6">Junho</option>
+            <option value="7">Julho</option><option value="8">Agosto</option>
+            <option value="9">Setembro</option><option value="10">Outubro</option>
+            <option value="11">Novembro</option><option value="12">Dezembro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ano <span style="color:var(--c-danger)">*</span></label>
+          <input type="number" class="form-control" id="m-ano" min="2020" max="2099" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor da NF <span style="color:var(--c-danger)">*</span></label>
+          <input class="form-control" id="m-valor" placeholder="R$ 0,00" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Número da NF</label>
+          <input class="form-control" id="m-nf" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Número do Boleto</label>
+          <input class="form-control" id="m-boleto" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status <span style="color:var(--c-danger)">*</span></label>
+          <select class="form-control" id="m-status">
+            <option>Pendente</option><option>Recebido</option>
+            <option>Enviado ao Financeiro</option><option>Pago</option><option>Em atraso</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data Emissão NF</label>
+          <input type="date" class="form-control" id="m-emissao-nf" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Recebimento NF</label>
+          <input type="date" class="form-control" id="m-rec-nf" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Recebimento Boleto</label>
+          <input type="date" class="form-control" id="m-rec-boleto" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Envio ao Financeiro</label>
+          <input type="date" class="form-control" id="m-envio-fin" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data de Vencimento</label>
+          <input type="date" class="form-control" id="m-vencimento" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data de Pagamento</label>
+          <input type="date" class="form-control" id="m-pagamento" />
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Observações</label>
+          <textarea class="form-control" id="m-obs" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="Modal.close('modal-mov')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-mov">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Salvar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/utils.js"></script>
+<script>
+document.getElementById('sidebar-root').innerHTML = getSidebarHTML();
+document.getElementById('navbar-root').innerHTML  = getNavbarHTML('Financeiro', [
+  { label:'Dashboard', url:'index.html' }, { label:'Financeiro' }
+]);
+initApp();
+
+/* ── STATE ─────────────────────────────────────────────── */
+let _contratos  = [];
+let _movimentos = [];
+let _filtrados  = [];
+let _movEditData = null;
+let _movContratoId = null;
+const pag = new Paginator(15);
+
+/* ── PREENCHER ANOS ─────────────────────────────────────── */
+function preencherAnos() {
+  const sel = document.getElementById('f-ano');
+  const ano = new Date().getFullYear();
+  for (let a = ano + 1; a >= ano - 3; a--) {
+    const opt = document.createElement('option');
+    opt.value = a; opt.textContent = a;
+    if (a === ano) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+/* ── LER PARAMS DA URL ──────────────────────────────────── */
+function lerParamsURL() {
+  const p = new URLSearchParams(location.search);
+  if (p.get('mes')) document.getElementById('f-mes').value = p.get('mes');
+  if (p.get('ano')) document.getElementById('f-ano').value = p.get('ano');
+}
+
+/* ── CARREGAR ───────────────────────────────────────────── */
+async function carregar() {
+  document.getElementById('tbody-fin').innerHTML =
+    `<tr><td colspan="13" style="text-align:center;padding:32px;color:var(--c-text-3)"><span class="spinner" style="display:inline-block"></span></td></tr>`;
+  try {
+    _contratos = await API.listarContratos();
+    const promises = _contratos.map(c => API.listarMovimentacoes(c.id));
+    const results  = await Promise.all(promises);
+    _movimentos = results.flat();
+
+    // Detectar se algum dado veio de cache
+    if (results.some(r => Array.isArray(r) && r._fromCache)) {
+      document.getElementById('cache-banner').style.display = 'flex';
+    }
+
+    aplicarFiltros();
+  } catch(e) {
+    document.getElementById('tbody-fin').innerHTML = `
+      <tr><td colspan="13">
+        <div style="padding:32px;text-align:center;color:var(--c-text-3)">
+          <div style="font-size:13px;font-weight:600;color:var(--c-text-2);margin-bottom:8px">Erro ao carregar dados</div>
+          <div style="font-size:12px;margin-bottom:16px">${e.message}</div>
+          <button class="btn btn-secondary btn-sm" onclick="carregar()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+            Tentar novamente
+          </button>
+        </div>
+      </td></tr>`;
+    Toast.error('Erro ao carregar: ' + e.message);
+  }
+}
+
+/* ── FILTROS ────────────────────────────────────────────── */
+function aplicarFiltros() {
+  const mes    = parseInt(document.getElementById('f-mes').value);
+  const ano    = parseInt(document.getElementById('f-ano').value);
+  const status = document.getElementById('f-status-fin').value;
+  const emp    = document.getElementById('f-empresa-fin').value;
+
+  _filtrados = _movimentos.filter(m => {
+    if (m.mes != mes || m.ano != ano) return false;
+    if (status && m.status !== status) return false;
+    if (emp) {
+      const c = _contratos.find(x => x.id === m.id_contrato);
+      if (c?.empresa !== emp) return false;
+    }
+    return true;
+  });
+
+  pag.setTotal(_filtrados.length);
+  renderKPIs();
+  renderAlertas();
+  renderTabela();
+  renderPaginacao();
+  renderCardsContratos();
+
+  document.getElementById('titulo-tabela-fin').textContent =
+    `Movimentações de ${Fmt.mesNome(mes)} ${ano}`;
+  document.getElementById('subtitulo-tabela-fin').textContent =
+    `${_filtrados.length} registros`;
+}
+
+['f-mes','f-ano','f-status-fin','f-empresa-fin'].forEach(id =>
+  document.getElementById(id).addEventListener('change', aplicarFiltros));
+
+document.getElementById('btn-limpar-fin').addEventListener('click', () => {
+  const hoje = new Date();
+  document.getElementById('f-mes').value = hoje.getMonth()+1;
+  document.getElementById('f-ano').value = hoje.getFullYear();
+  document.getElementById('f-status-fin').value = '';
+  document.getElementById('f-empresa-fin').value = '';
+  aplicarFiltros();
+});
+
+document.getElementById('btn-refresh-fin').addEventListener('click', carregar);
+
+/* ── Critérios de controle ──────────────────────────────── */
+function _diasParaVenc(m) {
+  if (!m.data_vencimento) return null;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  return Math.round((new Date(m.data_vencimento) - hoje) / 86400000);
+}
+function _boletoEmAlerta(m) {
+  if (m.data_recebimento_boleto) return false;
+  const dias = _diasParaVenc(m);
+  return dias !== null && dias <= 7;
+}
+function _nfRecebidaTarde(m) {
+  if (!m.data_recebimento_nf || !m.data_vencimento) return false;
+  return new Date(m.data_recebimento_nf) > new Date(m.data_vencimento);
+}
+
+/* ── KPIs ──────────────────────────────────────────────── */
+function renderKPIs() {
+  const totalValor     = _filtrados.reduce((s,m)=>s+(parseFloat(m.valor_nota)||0),0);
+  const pago           = _filtrados.filter(m=>m.status==='Pago').reduce((s,m)=>s+(parseFloat(m.valor_nota)||0),0);
+  const pendente       = _filtrados.filter(m=>m.status!=='Pago'&&m.status!=='Cancelado').reduce((s,m)=>s+(parseFloat(m.valor_nota)||0),0);
+  const boletoSemReceb = _filtrados.filter(m=>_boletoEmAlerta(m)).length;
+  const nfPendentes    = _filtrados.filter(m=>!m.data_recebimento_nf).length;
+
+  document.getElementById('kpi-fin').innerHTML = [
+    { label:'Total do Período',       value:Fmt.moeda(totalValor), color:'#1E3A5F', bg:'#EFF6FF', icon:'dollar-sign', text:true },
+    { label:'Total Pago',             value:Fmt.moeda(pago),       color:'#059669', bg:'#ECFDF5', icon:'check',       text:true },
+    { label:'Total Pendente',         value:Fmt.moeda(pendente),   color:'#DC2626', bg:'#FEF2F2', icon:'clock',       text:true },
+    { label:'Boletos Não Recebidos',  value:boletoSemReceb,        color:'#DC2626', bg:'#FEF2F2', icon:'alert-triangle' },
+    { label:'NFs Pendentes',          value:nfPendentes,           color:'#D97706', bg:'#FFFBEB', icon:'file-text'    },
+  ].map(k => `
+    <div class="kpi-card" style="--kpi-color:${k.color};--kpi-bg:${k.bg};padding:14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="kpi-icon" style="width:32px;height:32px;margin:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            ${{
+              'dollar-sign':'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
+              'check':'<polyline points="20 6 9 17 4 12"/>',
+              'clock':'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+              'alert-triangle':'<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/>',
+              'file-text':'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+            }[k.icon]}
+          </svg>
+        </div>
+        <div>
+          <div class="kpi-value" style="font-size:${k.text?'14px':'20px'}">${k.value}</div>
+          <div class="kpi-label">${k.label}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+/* ── ALERTAS ────────────────────────────────────────────── */
+function renderAlertas() {
+  const boletosNaoRecebidos = _filtrados.filter(m => _boletoEmAlerta(m));
+  const nfTarde             = _filtrados.filter(m => _nfRecebidaTarde(m));
+  const naoEnviado          = _filtrados.filter(m => m.data_recebimento_boleto && !m.data_envio_financeiro);
+
+  let html = '';
+  if (boletosNaoRecebidos.length) {
+    html += `<div class="alert alert-danger" style="margin-bottom:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+      <div>
+        <strong>${boletosNaoRecebidos.length} boleto(s) não recebido(s)</strong> com vencimento próximo ou já passado.
+        <div style="font-size:11px;margin-top:4px;color:inherit;opacity:.85">
+          ${boletosNaoRecebidos.slice(0,4).map(m => {
+            const c = _contratos.find(x=>x.id===m.id_contrato);
+            const dias = _diasParaVenc(m);
+            return `${c?.fornecedor||m.id_contrato} (${dias<0?Math.abs(dias)+'d após o venc.':dias+'d para o venc.'})`;
+          }).join(' · ')}${boletosNaoRecebidos.length>4?` e mais ${boletosNaoRecebidos.length-4}…`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+  if (nfTarde.length) {
+    html += `<div class="alert alert-warning" style="margin-bottom:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+      <span><strong>${nfTarde.length} nota(s) fiscal(is)</strong> recebida(s) após o vencimento do boleto.</span>
+    </div>`;
+  }
+  if (naoEnviado.length) {
+    html += `<div class="alert alert-info" style="margin-bottom:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+      <span>${naoEnviado.length} boleto(s) recebido(s) mas ainda não enviado(s) para o financeiro.</span>
+    </div>`;
+  }
+  document.getElementById('alertas-fin').innerHTML = html;
+}
+
+/* ── TABELA ─────────────────────────────────────────────── */
+function renderTabela() {
+  const page  = pag.slice(_filtrados);
+  const tbody = document.getElementById('tbody-fin');
+
+  if (!page.length) {
+    tbody.innerHTML = `<tr><td colspan="13">
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3;margin-bottom:12px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        <h3>Nenhuma movimentação</h3>
+        <p>Não há registros para este período e filtros.</p>
+      </div></td></tr>`;
+    return;
+  }
+
+  function dtCell(d) {
+    if (!d) return '<span style="color:var(--c-text-4)">—</span>';
+    return `<span style="font-size:12px">${Fmt.data(d)}</span>`;
+  }
+
+  tbody.innerHTML = page.map(m => {
+    const c            = _contratos.find(x => x.id === m.id_contrato);
+    const boletoAlerta = _boletoEmAlerta(m);
+    const nfTarde      = _nfRecebidaTarde(m);
+    const rowStyle     = boletoAlerta ? 'background:rgba(220,38,38,.03)' : '';
+
+    return `<tr style="${rowStyle}">
+      <td>
+        <div style="font-weight:600;font-size:12px">${c?.fornecedor||'—'}</div>
+        <div style="font-size:10px;color:var(--c-text-3)">${m.id_contrato} · ${c?.categoria||''}</div>
+      </td>
+      <td style="font-size:12px">${c?.empresa||'—'}</td>
+      <td class="mono" style="font-size:11px">
+        ${m.numero_nf||'<span style="color:var(--c-text-4)">—</span>'}
+        ${nfTarde?'<br><span class="badge badge-warning" style="font-size:9px">NF tardia</span>':''}
+      </td>
+      <td class="mono" style="font-size:11px">
+        ${m.numero_boleto||'<span style="color:var(--c-text-4)">—</span>'}
+        ${boletoAlerta?'<br><span class="badge badge-danger" style="font-size:9px">Não recebido</span>':''}
+      </td>
+      <td style="font-weight:700;font-family:\'JetBrains Mono\',monospace;font-size:12px">${Fmt.moeda(m.valor_nota)}</td>
+      <td>${dtCell(m.data_emissao_nf)}</td>
+      <td>${dtCell(m.data_recebimento_nf)}</td>
+      <td>${dtCell(m.data_recebimento_boleto)}</td>
+      <td>${dtCell(m.data_envio_financeiro)}</td>
+      <td>${dtCell(m.data_vencimento)}</td>
+      <td>${dtCell(m.data_pagamento)}</td>
+      <td>${Status.badgeMovimentacao(m.status)}</td>
+      <td>
+        <!-- Botão editar: abre DIRETAMENTE a movimentação deste mês/contrato -->
+        <button class="btn btn-ghost btn-sm btn-icon" title="Editar movimentação de ${Fmt.mesNome(m.mes)} ${m.ano}"
+          data-id-mov="${m.id_movimento}"
+          data-id-contrato="${m.id_contrato}"
+          data-mes="${m.mes}"
+          data-ano="${m.ano}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Delegação de eventos — captura todos os botões de editar na tabela
+  tbody.querySelectorAll('button[data-id-mov]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mov = _movimentos.find(m => m.id_movimento === btn.dataset.idMov);
+      if (mov) abrirModalMov(mov);
+    });
+  });
+}
+
+/* ── PAGINAÇÃO ──────────────────────────────────────────── */
+function renderPaginacao() {
+  document.getElementById('fin-count').textContent = `${_filtrados.length} registros`;
+  document.getElementById('fin-paginacao').innerHTML =
+    pag.renderHTML(function(p){ pag.page=p; renderTabela(); renderPaginacao(); });
+}
+
+/* ── CARDS POR CONTRATO ─────────────────────────────────── */
+function renderCardsContratos() {
+  const mes = parseInt(document.getElementById('f-mes').value);
+  const ano = parseInt(document.getElementById('f-ano').value);
+
+  const cards = _contratos
+    .filter(c => c.status === 'Ativo' || c.status === 'Em renovação')
+    .map(c => {
+      const mov = _movimentos.find(m => m.id_contrato === c.id && m.mes == mes && m.ano == ano);
+      return { c, mov };
+    });
+
+  if (!cards.length) {
+    document.getElementById('cards-contratos-fin').innerHTML = '<div class="text-muted text-sm">Nenhum contrato ativo.</div>';
+    return;
+  }
+
+  document.getElementById('cards-contratos-fin').innerHTML = cards.map(({ c, mov }) => {
+    const boletoAlerta = mov && _boletoEmAlerta(mov);
+    const nfTarde      = mov && _nfRecebidaTarde(mov);
+    const statusBadge  = mov ? Status.badgeMovimentacao(mov.status) : `<span class="badge badge-neutral">Sem registro</span>`;
+
+    const etapas = [
+      { label:'NF Recebida',   ok: !!mov?.data_recebimento_nf },
+      { label:'Boleto Receb.', ok: !!mov?.data_recebimento_boleto },
+      { label:'Env. Fin.',     ok: !!mov?.data_envio_financeiro },
+      { label:'Pago',          ok: !!mov?.data_pagamento },
+    ];
+    const progresso = etapas.filter(e=>e.ok).length;
+
+    return `
+    <div class="card" style="border-left:3px solid ${boletoAlerta?'var(--c-danger)':mov?.data_pagamento?'var(--c-success)':'var(--c-border)'}">
+      <div class="card-header" style="padding:12px 16px">
+        <div style="overflow:hidden">
+          <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.fornecedor}</div>
+          <div style="font-size:11px;color:var(--c-text-3)">${c.empresa} · ${c.categoria}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:8px">
+          <div style="font-weight:700;font-size:14px;font-family:'JetBrains Mono',monospace">${Fmt.moeda(c.valor_mensal)}</div>
+          ${statusBadge}
+        </div>
+      </div>
+      ${mov ? `
+      <div style="padding:12px 16px;border-top:1px solid var(--c-border)">
+        <div style="display:flex;gap:4px;margin-bottom:10px">
+          ${etapas.map((e,i) => `
+          <div style="flex:1;text-align:center">
+            <div style="width:24px;height:24px;border-radius:50%;border:2px solid ${e.ok?'var(--c-success)':'var(--c-border)'};
+                 background:${e.ok?'var(--c-success)':'transparent'};display:flex;align-items:center;
+                 justify-content:center;margin:0 auto 4px;color:${e.ok?'#fff':'var(--c-text-4)'}">
+              ${e.ok?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':`<span style="font-size:9px">${i+1}</span>`}
+            </div>
+            <div style="font-size:9px;color:${e.ok?'var(--c-success)':'var(--c-text-4)'};line-height:1.2">${e.label}</div>
+          </div>`).join('')}
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill ${boletoAlerta?'danger':progresso===4?'success':''}" style="width:${progresso*25}%"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;font-size:11px;color:var(--c-text-3)">
+          ${mov.numero_nf     ? `<div>NF: <strong>${mov.numero_nf}</strong></div>` : ''}
+          ${mov.numero_boleto ? `<div>Boleto: <strong style="font-size:10px">${mov.numero_boleto}</strong></div>` : ''}
+          ${mov.data_vencimento ? `<div>Venc.: <strong>${Fmt.data(mov.data_vencimento)}</strong></div>` : ''}
+          ${mov.data_pagamento  ? `<div>Pago: <strong>${Fmt.data(mov.data_pagamento)}</strong></div>` : ''}
+        </div>
+        ${boletoAlerta ? `<div class="alert alert-danger" style="margin-top:8px;padding:6px 10px;font-size:11px">Boleto não recebido — vencimento próximo ou já passado</div>` : ''}
+        ${nfTarde      ? `<div class="alert alert-warning" style="margin-top:8px;padding:6px 10px;font-size:11px">NF recebida após o vencimento do boleto</div>` : ''}
+        <!-- Botão editar direto na movimentação do mês -->
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%;justify-content:center"
+          onclick='abrirModalMov(${JSON.stringify(mov).replace(/'/g,"\\'")})'> Editar movimentação de ${Fmt.mesNome(mov.mes)} ${mov.ano}</button>
+      </div>` : `
+      <div style="padding:12px 16px;border-top:1px solid var(--c-border);font-size:12px;color:var(--c-text-3)">
+        Nenhuma movimentação registrada para este período.
+      </div>`}
+    </div>`;
+  }).join('');
+}
+
+/* ── MODAL MOVIMENTAÇÃO ────────────────────────────────────
+   Abre DIRETAMENTE com os dados do mês clicado.
+   Não redireciona para a página de contratos.
+──────────────────────────────────────────────────────────── */
+function abrirModalMov(m) {
+  _movEditData   = m;
+  _movContratoId = m.id_contrato;
+
+  const c = _contratos.find(x => x.id === m.id_contrato);
+  document.getElementById('mov-title').textContent    = 'Editar Movimentação';
+  document.getElementById('mov-subtitle').textContent = `${c?.fornecedor||m.id_contrato} · ${Fmt.mesNome(m.mes)} ${m.ano}`;
+
+  document.getElementById('m-mes').value     = m.mes || (new Date().getMonth()+1);
+  document.getElementById('m-ano').value     = m.ano || new Date().getFullYear();
+  document.getElementById('m-valor').value   = m.valor_nota ? `R$ ${parseFloat(m.valor_nota).toFixed(2).replace('.',',')}` : '';
+  document.getElementById('m-nf').value      = m.numero_nf || '';
+  document.getElementById('m-boleto').value  = m.numero_boleto || '';
+  document.getElementById('m-status').value  = m.status || 'Pendente';
+  document.getElementById('m-emissao-nf').value  = m.data_emissao_nf || '';
+  document.getElementById('m-rec-nf').value      = m.data_recebimento_nf || '';
+  document.getElementById('m-rec-boleto').value  = m.data_recebimento_boleto || '';
+  document.getElementById('m-envio-fin').value   = m.data_envio_financeiro || '';
+  document.getElementById('m-vencimento').value  = m.data_vencimento || '';
+  document.getElementById('m-pagamento').value   = m.data_pagamento || '';
+  document.getElementById('m-obs').value         = m.observacoes || '';
+
+  Modal.open('modal-mov');
+}
+
+document.getElementById('btn-salvar-mov').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-salvar-mov');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></span> Salvando…';
+  try {
+    const payload = {
+      id_movimento:            _movEditData?.id_movimento,
+      id_contrato:             _movContratoId,
+      mes:                     parseInt(document.getElementById('m-mes').value),
+      ano:                     parseInt(document.getElementById('m-ano').value),
+      valor_nota:              parseMoeda(document.getElementById('m-valor').value),
+      numero_nf:               document.getElementById('m-nf').value,
+      numero_boleto:           document.getElementById('m-boleto').value,
+      status:                  document.getElementById('m-status').value,
+      data_emissao_nf:         document.getElementById('m-emissao-nf').value,
+      data_recebimento_nf:     document.getElementById('m-rec-nf').value,
+      data_recebimento_boleto: document.getElementById('m-rec-boleto').value,
+      data_envio_financeiro:   document.getElementById('m-envio-fin').value,
+      data_vencimento:         document.getElementById('m-vencimento').value,
+      data_pagamento:          document.getElementById('m-pagamento').value,
+      observacoes:             document.getElementById('m-obs').value,
+      usuario:                 localStorage.getItem('user-nome') || 'Rafael',
+    };
+    await API.salvarMovimentacao(payload);
+    Toast.success('Movimentação salva!');
+    Modal.close('modal-mov');
+    await carregar(); // recarrega e mantém o mês/ano atual
+  } catch(e) {
+    Toast.error('Erro ao salvar: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar';
+  }
+});
+
+/* ── EXPORTAR / IMPRIMIR ────────────────────────────────── */
+document.getElementById('btn-export-fin').addEventListener('click', () => {
+  Export.csv(_filtrados.map(m => {
+    const c = _contratos.find(x => x.id === m.id_contrato);
+    return {
+      Contrato: m.id_contrato, Fornecedor: c?.fornecedor||'', Empresa: c?.empresa||'',
+      Mês: m.mes, Ano: m.ano, NF: m.numero_nf, Boleto: m.numero_boleto,
+      Valor: m.valor_nota, 'Emissão NF': m.data_emissao_nf,
+      'Receb. NF': m.data_recebimento_nf, 'Receb. Boleto': m.data_recebimento_boleto,
+      'Envio Fin.': m.data_envio_financeiro, Vencimento: m.data_vencimento,
+      Pagamento: m.data_pagamento, Status: m.status,
+    };
+  }), `financeiro-${document.getElementById('f-mes').value}-${document.getElementById('f-ano').value}`);
+});
+
+document.getElementById('btn-print-fin').addEventListener('click', () => {
+  const mes = document.getElementById('f-mes').value;
+  const ano = document.getElementById('f-ano').value;
+  const heads = ['Fornecedor','Empresa','NF','Boleto','Valor','Vencimento','Pagamento','Status'];
+  const rows  = _filtrados.map(m => {
+    const c = _contratos.find(x => x.id === m.id_contrato);
+    return [c?.fornecedor||'—', c?.empresa||'—', m.numero_nf||'—', m.numero_boleto||'—',
+      Fmt.moeda(m.valor_nota), Fmt.data(m.data_vencimento),
+      m.data_pagamento ? Fmt.data(m.data_pagamento) : '—', m.status];
+  });
+  Export.imprimir(Export.tabelaHTML(`Financeiro — ${Fmt.mesNome(parseInt(mes))} ${ano}`, heads, rows));
+});
+
+/* ── MÁSCARA VALOR ──────────────────────────────────────── */
+maskMoeda(document.getElementById('m-valor'));
+
+/* ── INICIAR ────────────────────────────────────────────── */
+preencherAnos();
+lerParamsURL();
+carregar();
+</script>
+</body>
+</html>

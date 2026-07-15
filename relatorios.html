@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relatórios — Gestão de Contratos TI</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div id="navbar-root"></div>
+    <main class="page-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Relatórios</h1>
+          <p>Análises, comparativos e exportação de dados</p>
+        </div>
+      </div>
+
+      <div class="filters-bar" style="margin-bottom:var(--sp-lg)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+        <select class="form-control" id="tipo-relatorio" style="max-width:300px">
+          <option value="ativos">Contratos Ativos</option>
+          <option value="vencidos">Contratos Vencidos / Vencendo</option>
+          <option value="por-fornecedor">Gastos por Fornecedor</option>
+          <option value="por-categoria">Gastos por Categoria</option>
+          <option value="mensal">Gastos Mensais</option>
+          <option value="anual">Comparativo Anual</option>
+          <option value="boletos">Boletos Não Recebidos</option>
+          <option value="centro-custo">Por Centro de Custo</option>
+        </select>
+        <select class="form-control" id="r-ano" style="max-width:120px"></select>
+        <button class="btn btn-primary btn-sm" id="btn-gerar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          Gerar
+        </button>
+        <div style="width:1px;height:28px;background:var(--c-border)"></div>
+        <button class="btn btn-secondary btn-sm" id="btn-print-rel">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Imprimir
+        </button>
+        <button class="btn btn-secondary btn-sm" id="btn-csv-rel">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          CSV
+        </button>
+      </div>
+
+      <div id="relatorio-area">
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3;margin-bottom:12px"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+          <h3>Selecione um relatório</h3>
+          <p>Escolha o tipo e clique em Gerar.</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/utils.js"></script>
+<script>
+document.getElementById('sidebar-root').innerHTML = getSidebarHTML();
+document.getElementById('navbar-root').innerHTML  = getNavbarHTML('Relatórios', [
+  { label:'Dashboard', url:'index.html' }, { label:'Relatórios' }
+]);
+initApp();
+
+let _contratos  = [];
+let _movimentos = [];
+let _relAtual   = null;
+
+/* Anos */
+(() => {
+  const sel = document.getElementById('r-ano');
+  const ano = new Date().getFullYear();
+  for (let a = ano; a >= ano - 4; a--) {
+    const opt = document.createElement('option');
+    opt.value = a; opt.textContent = a;
+    if (a === ano) opt.selected = true;
+    sel.appendChild(opt);
+  }
+})();
+
+async function carregar() {
+  try {
+    _contratos = await API.listarContratos();
+    const all  = await Promise.all(_contratos.map(c => API.listarMovimentacoes(c.id)));
+    _movimentos = all.flat();
+  } catch(e) {
+    Toast.error('Erro ao carregar dados: ' + e.message);
+  }
+}
+
+document.getElementById('btn-gerar').addEventListener('click', gerarRelatorio);
+
+async function gerarRelatorio() {
+  const tipo = document.getElementById('tipo-relatorio').value;
+  const ano  = parseInt(document.getElementById('r-ano').value);
+  const area = document.getElementById('relatorio-area');
+  area.innerHTML = `<div style="text-align:center;padding:32px"><span class="spinner" style="display:inline-block"></span><div style="margin-top:12px;font-size:13px;color:var(--c-text-3)">Gerando relatório…</div></div>`;
+  await new Promise(r => setTimeout(r, 200));
+  switch(tipo) {
+    case 'ativos':         area.innerHTML = relAtivos();           break;
+    case 'vencidos':       area.innerHTML = relVencidos();         break;
+    case 'por-fornecedor': area.innerHTML = relPorFornecedor(ano); break;
+    case 'por-categoria':  area.innerHTML = relPorCategoria(ano);  break;
+    case 'mensal':         area.innerHTML = relMensal(ano);        break;
+    case 'anual':          area.innerHTML = relAnual();            break;
+    case 'boletos':        area.innerHTML = relBoletos();          break;
+    case 'centro-custo':   area.innerHTML = relCentroCusto(ano);   break;
+  }
+}
+
+function tabelaHTML(titulo, subtitulo, headers, rows, totals = null) {
+  _relAtual = { titulo, headers, rows };
+  const totalRow = totals ? `<tfoot style="background:var(--c-ice)">
+    <tr>${totals.map(t=>`<td style="padding:10px 16px;font-weight:700;font-size:13px;border-top:2px solid var(--c-border-dark)">${t}</td>`).join('')}</tr>
+  </tfoot>` : '';
+  return `<div class="card">
+    <div class="card-header">
+      <div><div class="card-title">${titulo}</div><div class="card-subtitle">${subtitulo}</div></div>
+      <span class="badge badge-info">${rows.length} registros</span>
+    </div>
+    <div class="table-container" style="border:none">
+      <table>
+        <thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
+        ${totalRow}
+      </table>
+    </div>
+  </div>`;
+}
+
+function relAtivos() {
+  const hoje = new Date();
+  const data = _contratos.filter(c=>c.status==='Ativo').sort((a,b)=>(b.valor_mensal||0)-(a.valor_mensal||0));
+  const total = data.reduce((s,c)=>s+(parseFloat(c.valor_mensal)||0),0);
+  const headers = ['ID','Empresa','Fornecedor','Categoria','Tipo','Valor Mensal','Valor Anual','Término','Dias Rest.'];
+  const rows = data.map(c => {
+    const dias = Fmt.diasRestantes(c.data_fim);
+    return [
+      `<span class="mono">${c.id}</span>`, c.empresa,
+      `<strong>${c.fornecedor}</strong>`,
+      `<span class="badge badge-info">${c.categoria}</span>`, c.tipo,
+      `<strong style="font-family:'JetBrains Mono',monospace">${Fmt.moeda(c.valor_mensal)}</strong>`,
+      Fmt.moeda(c.valor_anual), Fmt.data(c.data_fim),
+      dias !== null ? `<span class="badge ${dias<=7?'badge-danger':dias<=30?'badge-warning':'badge-neutral'}">${dias}d</span>` : '—',
+    ];
+  });
+  return tabelaHTML('Contratos Ativos',
+    `${data.length} contratos · Mensal: ${Fmt.moeda(total)} · Anual: ${Fmt.moeda(total*12)}`,
+    headers, rows, ['','','','','',`<strong>${Fmt.moeda(total)}</strong>`,`<strong>${Fmt.moeda(total*12)}</strong>`,'','']);
+}
+
+function relVencidos() {
+  const hoje = new Date();
+  const data = _contratos
+    .filter(c => { const d = Fmt.diasRestantes(c.data_fim); return c.status==='Ativo' && d !== null && d <= 60; })
+    .sort((a,b) => new Date(a.data_fim)-new Date(b.data_fim));
+  const headers = ['ID','Fornecedor','Empresa','Categoria','Término','Situação','Status'];
+  const rows = data.map(c => {
+    const dias = Fmt.diasRestantes(c.data_fim);
+    return [`<span class="mono">${c.id}</span>`,`<strong>${c.fornecedor}</strong>`,c.empresa,c.categoria,
+      Fmt.data(c.data_fim),
+      `<span class="badge ${dias<0?'badge-danger':dias<=7?'badge-danger':dias<=30?'badge-warning':'badge-info'}">${dias<0?'Vencido há '+Math.abs(dias)+'d':dias+'d restantes'}</span>`,
+      Status.badgeContrato(c.status)];
+  });
+  return tabelaHTML('Contratos Vencidos / Vencendo em 60 dias',`${data.length} contratos`,headers,rows);
+}
+
+function relPorFornecedor(ano) {
+  const movs = _movimentos.filter(m=>m.ano==ano);
+  const agg  = {};
+  movs.forEach(m => {
+    const c = _contratos.find(x=>x.id===m.id_contrato);
+    const f = c?.fornecedor||'Desconhecido';
+    if (!agg[f]) agg[f] = { pago:0, pendente:0, qtd:0, categoria:c?.categoria||'' };
+    if (m.status==='Pago') agg[f].pago += parseFloat(m.valor_nota)||0;
+    else agg[f].pendente += parseFloat(m.valor_nota)||0;
+    agg[f].qtd++;
+  });
+  const data  = Object.entries(agg).sort((a,b)=>(b[1].pago+b[1].pendente)-(a[1].pago+a[1].pendente));
+  const total = data.reduce((s,[,v])=>s+v.pago+v.pendente,0);
+  const headers=['Fornecedor','Categoria','Movimentos','Total Pago','Pendente','Total Geral','% do Total'];
+  const rows = data.map(([nome,v]) => {
+    const tot = v.pago+v.pendente;
+    return [`<strong>${nome}</strong>`,`<span class="badge badge-info">${v.categoria}</span>`,v.qtd,
+      `<span style="color:var(--c-success);font-weight:600">${Fmt.moeda(v.pago)}</span>`,
+      `<span style="color:var(--c-danger)">${Fmt.moeda(v.pendente)}</span>`,
+      `<strong>${Fmt.moeda(tot)}</strong>`,`${((tot/total)*100).toFixed(1)}%`];
+  });
+  return tabelaHTML(`Gastos por Fornecedor — ${ano}`,`${data.length} fornecedores · Total: ${Fmt.moeda(total)}`,headers,rows,
+    ['','','','','',`<strong>${Fmt.moeda(total)}</strong>`,'100%']);
+}
+
+function relPorCategoria(ano) {
+  const ativos = _contratos.filter(c=>c.status==='Ativo');
+  const agg = {};
+  ativos.forEach(c => {
+    if (!agg[c.categoria]) agg[c.categoria] = {mensal:0,anual:0,qtd:0};
+    agg[c.categoria].mensal += parseFloat(c.valor_mensal)||0;
+    agg[c.categoria].anual  += parseFloat(c.valor_anual) ||0;
+    agg[c.categoria].qtd++;
+  });
+  const data   = Object.entries(agg).sort((a,b)=>b[1].mensal-a[1].mensal);
+  const totalM = data.reduce((s,[,v])=>s+v.mensal,0);
+  const headers=['Categoria','Contratos','Valor Mensal','Valor Anual','% Orçamento'];
+  const rows = data.map(([cat,v]) => [
+    `<span class="badge badge-info">${cat}</span>`,v.qtd,
+    `<strong>${Fmt.moeda(v.mensal)}</strong>`,Fmt.moeda(v.anual),
+    `<div style="display:flex;align-items:center;gap:8px">
+      <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${((v.mensal/totalM)*100).toFixed(0)}%"></div></div>
+      ${((v.mensal/totalM)*100).toFixed(1)}%</div>`]);
+  return tabelaHTML(`Gastos por Categoria`,`Mensal: ${Fmt.moeda(totalM)}`,headers,rows,
+    ['',``,`<strong>${Fmt.moeda(totalM)}</strong>`,'','100%']);
+}
+
+function relMensal(ano) {
+  const meses = Array.from({length:12},(_,i)=>i+1);
+  const rows  = meses.map(mes => {
+    const movs = _movimentos.filter(m=>m.mes==mes&&m.ano==ano);
+    const pago = movs.filter(m=>m.status==='Pago').reduce((s,m)=>s+(parseFloat(m.valor_nota)||0),0);
+    const pend = movs.filter(m=>m.status!=='Pago').reduce((s,m)=>s+(parseFloat(m.valor_nota)||0),0);
+    const bNR  = movs.filter(m=>!m.data_recebimento_boleto&&m.data_vencimento&&
+      Math.round((new Date(m.data_vencimento)-new Date())/86400000)<=7).length;
+    return [`<strong>${Fmt.mesNome(mes)}</strong>`,movs.length,
+      `<span style="color:var(--c-success);font-weight:600">${Fmt.moeda(pago)}</span>`,
+      `<span style="color:${pend?'var(--c-danger)':'var(--c-text-3)'}">${Fmt.moeda(pend)}</span>`,
+      `<strong>${Fmt.moeda(pago+pend)}</strong>`,
+      bNR?`<span class="badge badge-danger">${bNR}</span>`:'<span style="color:var(--c-text-4)">—</span>'];
+  });
+  const total = _movimentos.filter(m=>m.ano==ano).reduce((s,m)=>s+(parseFloat(m.valor_nota)||0),0);
+  return tabelaHTML(`Gastos Mensais — ${ano}`,`Total anual: ${Fmt.moeda(total)}`,
+    ['Mês','Movimentos','Total Pago','Total Pendente','Total Geral','Boletos s/ Receb.'],rows);
+}
+
+function relAnual() {
+  const anoAtual = new Date().getFullYear();
+  const anos = [anoAtual-2,anoAtual-1,anoAtual];
+  let ultTotal = null;
+  const rows = anos.map(ano => {
+    const movs  = _movimentos.filter(m=>m.ano==ano);
+    const total = movs.reduce((s,m)=>s+(parseFloat(m.valor_nota)||0),0);
+    const pago  = movs.filter(m=>m.status==='Pago').reduce((s,m)=>s+(parseFloat(m.valor_nota)||0),0);
+    const pend  = movs.filter(m=>m.status!=='Pago').reduce((s,m)=>s+(parseFloat(m.valor_nota)||0),0);
+    const var_  = ultTotal!==null&&ultTotal>0?(((total-ultTotal)/ultTotal)*100).toFixed(1):null;
+    const varH  = var_?`<span style="color:${var_>0?'var(--c-danger)':'var(--c-success)'}">${var_>0?'▲':'▼'} ${Math.abs(var_)}%</span>`:'—';
+    ultTotal = total;
+    return [`<strong>${ano}</strong>`,movs.length,`<strong>${Fmt.moeda(total)}</strong>`,Fmt.moeda(pago),Fmt.moeda(pend),varH];
+  });
+  return tabelaHTML('Comparativo Anual','Evolução dos gastos por ano',
+    ['Ano','Movimentos','Total Geral','Total Pago','Pendente','Variação'],rows);
+}
+
+function relBoletos() {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const data = _movimentos.filter(m => {
+    if (m.data_recebimento_boleto) return false;
+    if (!m.data_vencimento) return false;
+    return Math.round((new Date(m.data_vencimento)-hoje)/86400000) <= 7;
+  }).sort((a,b)=>new Date(a.data_vencimento)-new Date(b.data_vencimento));
+  const total = data.reduce((s,m)=>s+(parseFloat(m.valor_nota)||0),0);
+  const headers=['Contrato','Fornecedor','Mês/Ano','NF','Valor','Vencimento','Dias'];
+  const rows = data.map(m => {
+    const c   = _contratos.find(x=>x.id===m.id_contrato);
+    const dias = Math.round((new Date(m.data_vencimento)-hoje)/86400000);
+    return [`<span class="mono">${m.id_contrato}</span>`,`<strong>${c?.fornecedor||'—'}</strong>`,
+      Fmt.mesAno(m.mes,m.ano),m.numero_nf||'—',
+      `<strong style="color:var(--c-danger)">${Fmt.moeda(m.valor_nota)}</strong>`,
+      Fmt.data(m.data_vencimento),
+      `<span class="badge badge-danger">${dias<0?Math.abs(dias)+'d após':dias===0?'Hoje':dias+'d'}</span>`];
+  });
+  if (!rows.length) return `<div class="card"><div class="card-body"><div class="empty-state">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--c-success);opacity:.6;margin-bottom:12px"><polyline points="20 6 9 17 4 12"/></svg>
+    <h3 style="color:var(--c-success)">Nenhum boleto pendente!</h3>
+    <p>Todos os boletos com vencimento próximo foram recebidos.</p>
+  </div></div></div>`;
+  return tabelaHTML('Boletos Não Recebidos (vencimento ≤ 7 dias)',
+    `${data.length} boleto(s) · Total em aberto: ${Fmt.moeda(total)}`,headers,rows,
+    ['','','','',`<strong>${Fmt.moeda(total)}</strong>`,'','']);
+}
+
+function relCentroCusto(ano) {
+  const ativos = _contratos.filter(c=>c.status==='Ativo');
+  const agg = {};
+  ativos.forEach(c => {
+    const cc = c.centro_custo||'Não definido';
+    if (!agg[cc]) agg[cc]={mensal:0,anual:0,qtd:0};
+    agg[cc].mensal += parseFloat(c.valor_mensal)||0;
+    agg[cc].anual  += parseFloat(c.valor_anual) ||0;
+    agg[cc].qtd++;
+  });
+  const data   = Object.entries(agg).sort((a,b)=>b[1].mensal-a[1].mensal);
+  const totalM = data.reduce((s,[,v])=>s+v.mensal,0);
+  const headers=['Centro de Custo','Contratos','Valor Mensal','Valor Anual','% Orçamento'];
+  const rows = data.map(([cc,v]) => [
+    `<strong>${cc}</strong>`,v.qtd,`<strong>${Fmt.moeda(v.mensal)}</strong>`,
+    Fmt.moeda(v.anual),`${((v.mensal/totalM)*100).toFixed(1)}%`]);
+  return tabelaHTML(`Gastos por Centro de Custo`,`Mensal: ${Fmt.moeda(totalM)}`,headers,rows,
+    ['',``,`<strong>${Fmt.moeda(totalM)}</strong>`,'','100%']);
+}
+
+/* Exportar */
+document.getElementById('btn-csv-rel').addEventListener('click', () => {
+  if (!_relAtual) { Toast.warning('Gere um relatório primeiro.'); return; }
+  const clean = s => String(s).replace(/<[^>]+>/g,'').trim();
+  Export.csv(_relAtual.rows.map(r => Object.fromEntries(_relAtual.headers.map((h,i)=>[h,clean(r[i])]))),
+    _relAtual.titulo.replace(/\s/g,'-').toLowerCase());
+});
+document.getElementById('btn-print-rel').addEventListener('click', () => {
+  if (!_relAtual) { Toast.warning('Gere um relatório primeiro.'); return; }
+  const clean = s => String(s).replace(/<[^>]+>/g,'').trim();
+  Export.imprimir(Export.tabelaHTML(_relAtual.titulo, _relAtual.headers, _relAtual.rows.map(r=>r.map(clean))));
+});
+
+carregar().then(() => gerarRelatorio());
+</script>
+</body>
+</html>

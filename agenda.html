@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agenda — Gestão de Contratos TI</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    /* Grid do calendário ocupa 100% da largura disponível */
+    .calendar-grid, .calendar-header { width: 100%; }
+    /* Responsive: em telas pequenas reduz altura da célula */
+    @media (max-width: 900px) { .calendar-day { height: 72px; } }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div id="navbar-root"></div>
+
+    <main class="page-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Agenda Financeira</h1>
+          <p>Vencimentos, boletos, pagamentos e alertas de contratos</p>
+        </div>
+        <div class="page-header-right">
+          <button class="btn btn-ghost btn-sm" id="btn-prev-mes">&#8592; Anterior</button>
+          <span id="mes-label" style="font-size:15px;font-weight:600;color:var(--c-text-1);min-width:160px;text-align:center;display:inline-block"></span>
+          <button class="btn btn-ghost btn-sm" id="btn-next-mes">Próximo &#8594;</button>
+          <button class="btn btn-secondary btn-sm" id="btn-hoje">Hoje</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:var(--sp-lg)">
+
+        <!-- CALENDÁRIO -->
+        <div class="card">
+          <div class="card-body" style="padding:var(--sp-md)">
+
+            <!-- Legenda -->
+            <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--c-text-3)">
+                <div style="width:10px;height:10px;border-radius:2px;background:var(--c-danger)"></div> Boleto não recebido
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--c-text-3)">
+                <div style="width:10px;height:10px;border-radius:2px;background:var(--c-warning)"></div> Vencimento
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--c-text-3)">
+                <div style="width:10px;height:10px;border-radius:2px;background:var(--c-success)"></div> Pago
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--c-text-3)">
+                <div style="width:10px;height:10px;border-radius:2px;background:var(--c-teal)"></div> Contrato vencendo
+              </div>
+            </div>
+
+            <!-- Cabeçalho fixo dos dias da semana -->
+            <div class="calendar-header">
+              <div class="calendar-day-header">Dom</div>
+              <div class="calendar-day-header">Seg</div>
+              <div class="calendar-day-header">Ter</div>
+              <div class="calendar-day-header">Qua</div>
+              <div class="calendar-day-header">Qui</div>
+              <div class="calendar-day-header">Sex</div>
+              <div class="calendar-day-header">Sáb</div>
+            </div>
+
+            <!-- Grade do calendário (preenchida por JS) -->
+            <div class="calendar-grid" id="calendar-grid"></div>
+
+          </div>
+        </div>
+
+        <!-- PAINEL LATERAL -->
+        <div style="display:flex;flex-direction:column;gap:var(--sp-md)">
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title" id="dia-label">Selecione um dia</div>
+            </div>
+            <div id="painel-dia" style="min-height:80px;padding:var(--sp-md)">
+              <div class="text-muted text-sm">Clique em um dia para ver os eventos.</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Próximos 30 dias</div>
+            </div>
+            <div id="proximos-30" style="padding:var(--sp-sm);max-height:420px;overflow-y:auto"></div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/utils.js"></script>
+<script>
+document.getElementById('sidebar-root').innerHTML = getSidebarHTML();
+document.getElementById('navbar-root').innerHTML  = getNavbarHTML('Agenda', [
+  { label:'Dashboard', url:'index.html' }, { label:'Agenda' }
+]);
+initApp();
+
+let _contratos  = [];
+let _movimentos = [];
+let _viewDate   = new Date();
+// _eventos: { 'YYYY-MM-DD': [ {tipo, label, detalhe, c, mov} ] }
+let _eventos    = {};
+
+/* ── CARREGAR ───────────────────────────────────────────── */
+async function carregar() {
+  try {
+    _contratos = await API.listarContratos();
+    const all  = await Promise.all(_contratos.map(c => API.listarMovimentacoes(c.id)));
+    _movimentos = all.flat();
+    calcularEventos();
+    renderCalendario();
+    renderProximos30();
+  } catch(e) {
+    Toast.error('Erro ao carregar agenda: ' + e.message);
+  }
+}
+
+/* ── CALCULAR EVENTOS ───────────────────────────────────── */
+function calcularEventos() {
+  _eventos = {};
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+
+  function add(data, ev) {
+    if (!data) return;
+    const k = String(data).slice(0, 10);
+    if (!_eventos[k]) _eventos[k] = [];
+    _eventos[k].push(ev);
+  }
+
+  /* Movimentações — vencimento do boleto */
+  _movimentos.forEach(m => {
+    if (!m.data_vencimento) return;
+    const c   = _contratos.find(x => x.id === m.id_contrato);
+    const fn  = c?.fornecedor || m.id_contrato;
+    const val = Fmt.moeda(m.valor_nota);
+    const dias = Math.round((new Date(m.data_vencimento) - hoje) / 86400000);
+    const boletoNR = !m.data_recebimento_boleto && dias <= 7;
+
+    let tipo, label;
+    if (m.data_pagamento) {
+      tipo  = 'pago';
+      label = `✓ ${fn} ${val}`;
+    } else if (boletoNR) {
+      tipo  = 'boleto'; // vermelho — boleto não recebido perto do venc.
+      label = `⚠ ${fn} ${val}`;
+    } else {
+      tipo  = 'venc';
+      label = `${fn} ${val}`;
+    }
+
+    add(m.data_vencimento, { tipo, label, detalhe: `${Fmt.mesAno(m.mes,m.ano)} · ${m.numero_nf||'sem NF'} · ${m.numero_boleto||'sem boleto'}`, c, mov: m });
+  });
+
+  /* Contratos vencendo nos próximos 90 dias */
+  _contratos.forEach(c => {
+    if (c.status !== 'Ativo' || !c.data_fim) return;
+    const dias = Fmt.diasRestantes(c.data_fim);
+    if (dias === null || dias < 0 || dias > 90) return;
+    add(c.data_fim, { tipo: 'contrato', label: `Contrato: ${c.fornecedor}`, detalhe: `${c.categoria} · ${c.empresa}`, c });
+  });
+}
+
+/* ── RENDERIZAR CALENDÁRIO ──────────────────────────────── */
+function renderCalendario() {
+  const ano  = _viewDate.getFullYear();
+  const mes  = _viewDate.getMonth();       // 0-based
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+
+  document.getElementById('mes-label').textContent =
+    new Date(ano, mes, 1)
+      .toLocaleDateString('pt-BR', { month:'long', year:'numeric' })
+      .replace(/^\w/, ch => ch.toUpperCase());
+
+  const primeiroDia  = new Date(ano, mes, 1).getDay();   // 0=Dom
+  const diasNoMes    = new Date(ano, mes + 1, 0).getDate();
+  const totalCelulas = Math.ceil((primeiroDia + diasNoMes) / 7) * 7;
+
+  // Máximo de eventos visíveis por célula (altura 90px ÷ ~14px por evento ≈ 4)
+  const MAX_EV = 4;
+
+  let html = '';
+  for (let i = 0; i < totalCelulas; i++) {
+    const dia     = i - primeiroDia + 1;
+    const valido  = dia >= 1 && dia <= diasNoMes;
+    const dt      = valido ? new Date(ano, mes, dia) : null;
+    const isHoje  = dt && dt.getTime() === hoje.getTime();
+    const key     = dt ? `${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}` : null;
+    const evs     = key ? (_eventos[key] || []) : [];
+    const excesso = evs.length > MAX_EV ? evs.length - MAX_EV : 0;
+
+    const evHtml = evs.slice(0, MAX_EV).map(e =>
+      `<div class="calendar-event ${e.tipo}">${e.label}</div>`
+    ).join('');
+
+    const maisHtml = excesso > 0
+      ? `<div class="calendar-mais">+${excesso} mais</div>`
+      : '';
+
+    html += `<div
+      class="calendar-day${valido?'':' other-month'}${isHoje?' today':''}"
+      ${valido ? `onclick="selecionarDia('${key}')"` : ''}>
+      <div class="calendar-day-num">${valido ? dia : ''}</div>
+      <div class="calendar-events-area">
+        ${valido ? evHtml + maisHtml : ''}
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('calendar-grid').innerHTML = html;
+}
+
+/* ── SELECIONAR DIA ─────────────────────────────────────── */
+function selecionarDia(key) {
+  const [a, m, d] = key.split('-').map(Number);
+  const label = new Date(a, m-1, d)
+    .toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  document.getElementById('dia-label').textContent = label;
+
+  const evs    = _eventos[key] || [];
+  const painel = document.getElementById('painel-dia');
+
+  if (!evs.length) {
+    painel.innerHTML = '<div class="text-muted text-sm">Nenhum evento neste dia.</div>';
+    return;
+  }
+
+  const cores = {
+    pago:'success', boleto:'danger', venc:'warning', contrato:'info', atraso:'danger'
+  };
+
+  painel.innerHTML = evs.map(e => {
+    const cls = cores[e.tipo] || 'neutral';
+    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:8px;border-radius:var(--r-md);
+         background:var(--c-${cls}-bg, var(--c-ice));margin-bottom:6px">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--c-${cls});
+           margin-top:4px;flex-shrink:0"></div>
+      <div style="overflow:hidden">
+        <div style="font-size:12px;font-weight:600;color:var(--c-text-1);
+             white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.label}</div>
+        <div style="font-size:11px;color:var(--c-text-3);margin-top:2px">${e.detalhe||''}</div>
+        ${e.c ? `<div style="font-size:10px;color:var(--c-text-4)">${e.c.empresa} · ${e.c.categoria}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── PRÓXIMOS 30 DIAS ───────────────────────────────────── */
+function renderProximos30() {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const fim  = new Date(hoje); fim.setDate(fim.getDate() + 30);
+
+  const items = [];
+  Object.entries(_eventos).forEach(([key, evs]) => {
+    const d = new Date(key + 'T00:00:00');
+    if (d >= hoje && d <= fim) {
+      evs.forEach(e => items.push({ date: d, key, ...e }));
+    }
+  });
+  items.sort((a, b) => a.date - b.date);
+
+  const el = document.getElementById('proximos-30');
+  if (!items.length) {
+    el.innerHTML = '<div class="text-muted text-sm" style="padding:8px">Sem eventos nos próximos 30 dias.</div>';
+    return;
+  }
+
+  const cores = { pago:'success', boleto:'danger', venc:'warning', contrato:'info', atraso:'danger' };
+  let lastDate = '';
+
+  el.innerHTML = items.map(e => {
+    const dk     = e.date.toLocaleDateString('pt-BR', { day:'2-digit', month:'short' });
+    const header = dk !== lastDate
+      ? `<div style="font-size:10px;font-weight:700;color:var(--c-text-3);text-transform:uppercase;
+             letter-spacing:.06em;padding:8px 4px 4px;margin-top:${lastDate?'6px':'0'}">${dk}</div>`
+      : '';
+    lastDate = dk;
+    const cls = cores[e.tipo] || 'neutral';
+
+    return `${header}
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 4px;border-radius:var(--r-sm);cursor:pointer"
+         onclick="selecionarDia('${e.key}')"
+         onmouseover="this.style.background='var(--c-ice)'"
+         onmouseout="this.style.background=''">
+      <div style="width:6px;height:6px;border-radius:50%;background:var(--c-${cls});flex-shrink:0"></div>
+      <div style="flex:1;overflow:hidden">
+        <div style="font-size:12px;font-weight:500;color:var(--c-text-1);
+             white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.label}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── NAVEGAÇÃO ──────────────────────────────────────────── */
+document.getElementById('btn-prev-mes').addEventListener('click', () => {
+  _viewDate.setMonth(_viewDate.getMonth() - 1);
+  renderCalendario();
+});
+document.getElementById('btn-next-mes').addEventListener('click', () => {
+  _viewDate.setMonth(_viewDate.getMonth() + 1);
+  renderCalendario();
+});
+document.getElementById('btn-hoje').addEventListener('click', () => {
+  _viewDate = new Date();
+  renderCalendario();
+});
+
+carregar();
+</script>
+</body>
+</html>

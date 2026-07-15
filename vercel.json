@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "name": "contratos-gi",
+  "builds": [
+    { "src": "**/*", "use": "@vercel/static" }
+  ],
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    }
+  ]
+}

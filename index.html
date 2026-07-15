@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Gestão de Contratos TI</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .kpi-card { cursor:pointer; }
+    .kpi-card:hover { transform:translateY(-3px); box-shadow:var(--sh-md); }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content" id="main-content">
+    <div id="navbar-root"></div>
+
+    <main class="page-content">
+
+      <!-- BANNER CACHE -->
+      <div id="cache-banner" style="display:none" class="alert alert-warning">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span>Dados carregados do cache — a API do Google Sheets está indisponível no momento. As informações podem não estar atualizadas.</span>
+      </div>
+
+      <!-- ALERTAS AUTOMÁTICOS -->
+      <div id="alert-area"></div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card"><div class="skeleton" style="width:40px;height:40px;border-radius:10px;margin-bottom:16px"></div><div class="skeleton" style="width:80px;height:28px;margin-bottom:8px"></div><div class="skeleton" style="width:120px;height:14px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="width:40px;height:40px;border-radius:10px;margin-bottom:16px"></div><div class="skeleton" style="width:80px;height:28px;margin-bottom:8px"></div><div class="skeleton" style="width:120px;height:14px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="width:40px;height:40px;border-radius:10px;margin-bottom:16px"></div><div class="skeleton" style="width:80px;height:28px;margin-bottom:8px"></div><div class="skeleton" style="width:120px;height:14px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="width:40px;height:40px;border-radius:10px;margin-bottom:16px"></div><div class="skeleton" style="width:80px;height:28px;margin-bottom:8px"></div><div class="skeleton" style="width:120px;height:14px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="width:40px;height:40px;border-radius:10px;margin-bottom:16px"></div><div class="skeleton" style="width:80px;height:28px;margin-bottom:8px"></div><div class="skeleton" style="width:120px;height:14px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="width:40px;height:40px;border-radius:10px;margin-bottom:16px"></div><div class="skeleton" style="width:80px;height:28px;margin-bottom:8px"></div><div class="skeleton" style="width:120px;height:14px"></div></div>
+      </div>
+
+      <!-- GRÁFICOS + VENCIMENTOS -->
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:var(--sp-lg);margin-bottom:var(--sp-lg)">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Evolução Mensal de Pagamentos</div>
+              <div class="card-subtitle">Últimos 6 meses</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btn-export-evolucao">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar
+            </button>
+          </div>
+          <div class="card-body">
+            <div id="chart-evolucao" style="min-height:160px;display:flex;align-items:flex-end"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Próximos Vencimentos</div>
+          </div>
+          <div class="card-body" style="padding:var(--sp-md)">
+            <div id="proximos-vencimentos" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CATEGORIAS + FORNECEDORES -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-lg)">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Gasto por Categoria</div></div>
+          <div class="card-body" style="padding:0"><div id="cat-list"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Maiores Fornecedores</div></div>
+          <div class="card-body" style="padding:0"><div id="forn-list"></div></div>
+        </div>
+      </div>
+
+      <!-- CONTRATOS RECENTES -->
+      <div class="card" style="margin-top:var(--sp-lg)">
+        <div class="card-header">
+          <div class="card-title">Contratos Ativos — Visão Geral</div>
+          <a href="contratos.html" class="btn btn-secondary btn-sm">Ver todos</a>
+        </div>
+        <div class="table-container" style="border:none;border-radius:0 0 var(--r-lg) var(--r-lg)">
+          <table>
+            <thead><tr>
+              <th>Fornecedor</th><th>Descrição</th><th>Categoria</th>
+              <th>Valor Mensal</th><th>Vencimento</th><th>Status</th><th></th>
+            </tr></thead>
+            <tbody id="tbody-contratos">
+              <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--c-text-3)">
+                <span class="spinner" style="display:inline-block"></span>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL KPI — exibe lista detalhada ao clicar no card -->
+<div class="modal-overlay" id="modal-kpi">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-kpi-title"></div>
+        <div class="modal-subtitle" id="modal-kpi-subtitle"></div>
+      </div>
+      <button class="modal-close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modal-kpi-body"></div>
+    <div class="modal-footer">
+      <a id="modal-kpi-link" href="#" class="btn btn-primary btn-sm">Ver no Financeiro →</a>
+      <button class="btn btn-secondary" onclick="Modal.close('modal-kpi')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/utils.js"></script>
+<script>
+document.getElementById('sidebar-root').innerHTML = getSidebarHTML();
+document.getElementById('navbar-root').innerHTML  = getNavbarHTML('Dashboard', [{ label: 'Dashboard' }]);
+initApp();
+
+/* ── STATE ─────────────────────────────────────────────── */
+let _dash = null;
+let _contratos = [];
+let _todasMovs = [];
+
+/* ── CARREGAR ───────────────────────────────────────────── */
+async function carregarDashboard() {
+  try {
+    [_dash, _contratos] = await Promise.all([
+      API.obterDashboard(),
+      API.listarContratos(),
+    ]);
+
+    // Movimentações só para os cards clicáveis
+    const movPromises = _contratos.map(c => API.listarMovimentacoes(c.id));
+    const results = await Promise.all(movPromises);
+    _todasMovs = results.flat();
+
+    if (_dash._fromCache) {
+      document.getElementById('cache-banner').style.display = 'flex';
+    }
+
+    renderKPIs();
+    renderAlerts();
+    renderEvolucao(_dash.evolucao_mensal || []);
+    renderProximosVencimentos();
+    renderCategorias(_dash.por_categoria || {});
+    renderFornecedores(_dash.por_fornecedor || {});
+    renderTabelaContratos();
+  } catch(e) {
+    document.getElementById('kpi-grid').innerHTML = `
+      <div style="grid-column:1/-1;padding:32px;text-align:center;color:var(--c-text-3)">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 12px;display:block;opacity:.4">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <div style="font-size:14px;font-weight:600;color:var(--c-text-2);margin-bottom:6px">Não foi possível carregar os dados</div>
+        <div style="font-size:12px;margin-bottom:16px">${e.message}</div>
+        <button class="btn btn-secondary btn-sm" onclick="carregarDashboard()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          Tentar novamente
+        </button>
+      </div>`;
+  }
+}
+
+/* ── KPIs ──────────────────────────────────────────────── */
+function renderKPIs() {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const d = _dash;
+
+  // NFs Pendentes e Boletos Não Recebidos = escopo dos próximos 30 dias
+  const em30dias = _todasMovs.filter(m => {
+    if (!m.data_vencimento) return false;
+    const dias = Math.round((new Date(m.data_vencimento) - hoje) / 86400000);
+    return dias <= 30;
+  });
+  const nfPend30   = em30dias.filter(m => !m.data_recebimento_nf).length;
+  const boletNR30  = em30dias.filter(m => !m.data_recebimento_boleto && (() => {
+    const dias = Math.round((new Date(m.data_vencimento) - hoje) / 86400000);
+    return dias <= 7;
+  })()).length;
+
+  const kpis = [
+    {
+      id:'kpi-total',       label:'Total de Contratos',    value: d.total_contratos,
+      icon:'file-text',     color:'#3B82F6', bg:'#EFF6FF', clicavel: true,
+      onclick: () => abrirModalKPI('total'),
+    },
+    {
+      id:'kpi-ativos',      label:'Contratos Ativos',      value: d.contratos_ativos,
+      icon:'check',         color:'#059669', bg:'#ECFDF5', clicavel: true,
+      onclick: () => abrirModalKPI('ativos'),
+    },
+    {
+      id:'kpi-vencidos',    label:'Vencidos / Em renovação', value: d.contratos_vencidos,
+      icon:'alert-triangle',color:'#DC2626', bg:'#FEF2F2', clicavel: true,
+      onclick: () => abrirModalKPI('vencidos'),
+    },
+    {
+      id:'kpi-mensal',      label:'Valor Mensal (Ativos)', value: Fmt.moeda(d.valor_mensal),
+      icon:'dollar-sign',   color:'#0891B2', bg:'#E0F2FE', isText:true,
+    },
+    {
+      id:'kpi-nf',          label:'NFs Pendentes (30 dias)', value: nfPend30,
+      icon:'file-text',     color:'#D97706', bg:'#FFFBEB', clicavel: true,
+      onclick: () => abrirModalKPI('nf-pendentes'),
+    },
+    {
+      id:'kpi-boleto',      label:'Boletos Não Recebidos',  value: boletNR30,
+      icon:'alert-triangle',color:'#DC2626', bg:'#FEF2F2', clicavel: true,
+      onclick: () => abrirModalKPI('boletos-nr'),
+    },
+  ];
+
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k => `
+    <div class="kpi-card" id="${k.id}" style="--kpi-color:${k.color};--kpi-bg:${k.bg}"
+         ${k.clicavel ? `onclick="(${k.onclick.toString()})()" title="Clique para ver detalhes"` : ''}>
+      <div class="kpi-icon">${icon(k.icon, 20)}</div>
+      <div class="kpi-value">${k.isText ? `<span style="font-size:18px">${k.value}</span>` : k.value}</div>
+      <div class="kpi-label">${k.label}</div>
+      ${k.clicavel ? `<div style="font-size:10px;color:var(--kpi-color);margin-top:4px;opacity:.7">Ver detalhes →</div>` : ''}
+    </div>`).join('');
+
+  // Reatribuir handlers (onclick inline com função serializada não funciona perfeitamente para closures)
+  kpis.filter(k => k.clicavel).forEach(k => {
+    document.getElementById(k.id)?.addEventListener('click', k.onclick);
+  });
+  // Re-render sem onclick inline para evitar duplicata
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k => `
+    <div class="kpi-card" id="${k.id}" style="--kpi-color:${k.color};--kpi-bg:${k.bg}"
+         ${k.clicavel ? 'style="cursor:pointer"' : ''}>
+      <div class="kpi-icon">${icon(k.icon, 20)}</div>
+      <div class="kpi-value">${k.isText ? `<span style="font-size:18px">${k.value}</span>` : k.value}</div>
+      <div class="kpi-label">${k.label}</div>
+      ${k.clicavel ? `<div style="font-size:10px;color:var(--kpi-color);margin-top:4px;opacity:.7">Clique para detalhes →</div>` : ''}
+    </div>`).join('');
+  kpis.filter(k => k.clicavel).forEach(k => {
+    const el = document.getElementById(k.id);
+    if (el) el.addEventListener('click', k.onclick);
+  });
+}
+
+/* ── MODAL KPI ──────────────────────────────────────────── */
+function abrirModalKPI(tipo) {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  let titulo, subtitulo, html, link = 'contratos.html';
+
+  const em30dias = _todasMovs.filter(m => {
+    if (!m.data_vencimento) return false;
+    const dias = Math.round((new Date(m.data_vencimento) - hoje) / 86400000);
+    return dias <= 30;
+  });
+
+  if (tipo === 'total') {
+    titulo    = 'Todos os Contratos';
+    subtitulo = `${_contratos.length} contratos cadastrados`;
+    link      = 'contratos.html';
+    html = _tabelaContratosModal(_contratos);
+
+  } else if (tipo === 'ativos') {
+    const lista = _contratos.filter(c => c.status === 'Ativo');
+    titulo    = 'Contratos Ativos';
+    subtitulo = `${lista.length} contratos ativos`;
+    link      = 'contratos.html';
+    html = _tabelaContratosModal(lista);
+
+  } else if (tipo === 'vencidos') {
+    const lista = _contratos.filter(c => c.status === 'Ativo' && new Date(c.data_fim) < hoje);
+    const renov = _contratos.filter(c => c.status === 'Em renovação');
+    titulo    = 'Contratos Vencidos / Em Renovação';
+    subtitulo = `${lista.length} vencidos · ${renov.length} em renovação`;
+    link      = 'contratos.html';
+    html = _tabelaContratosModal([...lista, ...renov]);
+
+  } else if (tipo === 'nf-pendentes') {
+    const lista = em30dias.filter(m => !m.data_recebimento_nf);
+    titulo    = 'NFs Pendentes — próximos 30 dias';
+    subtitulo = `${lista.length} notas fiscais sem data de recebimento`;
+    link      = `financeiro.html?mes=${hoje.getMonth()+1}&ano=${hoje.getFullYear()}`;
+    html = _tabelaMovsModal(lista, 'NF não recebida');
+
+  } else if (tipo === 'boletos-nr') {
+    const lista = em30dias.filter(m => {
+      if (m.data_recebimento_boleto) return false;
+      const dias = Math.round((new Date(m.data_vencimento) - hoje) / 86400000);
+      return dias <= 7;
+    });
+    titulo    = 'Boletos Não Recebidos';
+    subtitulo = `${lista.length} boletos sem recebimento com vencimento próximo`;
+    link      = `financeiro.html?mes=${hoje.getMonth()+1}&ano=${hoje.getFullYear()}`;
+    html = _tabelaMovsModal(lista, 'Boleto não recebido');
+  }
+
+  document.getElementById('modal-kpi-title').textContent    = titulo;
+  document.getElementById('modal-kpi-subtitle').textContent = subtitulo;
+  document.getElementById('modal-kpi-body').innerHTML       = html;
+  document.getElementById('modal-kpi-link').href            = link;
+  Modal.open('modal-kpi');
+}
+
+function _tabelaContratosModal(lista) {
+  if (!lista.length) return '<div class="empty-state"><p>Nenhum registro.</p></div>';
+  return `<div class="table-container">
+    <table>
+      <thead><tr><th>Fornecedor</th><th>Empresa</th><th>Categoria</th><th>Valor Mensal</th><th>Término</th><th>Status</th></tr></thead>
+      <tbody>${lista.map(c => `<tr>
+        <td><strong>${c.fornecedor}</strong><br><span style="font-size:11px;color:var(--c-text-3)">${c.descricao}</span></td>
+        <td style="font-size:12px">${c.empresa}</td>
+        <td><span class="badge badge-info">${c.categoria}</span></td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600">${Fmt.moeda(c.valor_mensal)}</td>
+        <td style="font-size:12px">${Fmt.data(c.data_fim)}</td>
+        <td>${Status.badgeContrato(c.status)}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function _tabelaMovsModal(lista, label) {
+  if (!lista.length) return `<div class="empty-state"><p style="color:var(--c-success)">✓ Nenhum item pendente!</p></div>`;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  return `<div class="table-container">
+    <table>
+      <thead><tr><th>Fornecedor</th><th>Mês/Ano</th><th>Valor</th><th>Vencimento</th><th>Dias</th><th>Situação</th></tr></thead>
+      <tbody>${lista.map(m => {
+        const c = _contratos.find(x => x.id === m.id_contrato);
+        const dias = Math.round((new Date(m.data_vencimento) - hoje) / 86400000);
+        const cls = dias < 0 ? 'badge-danger' : dias <= 3 ? 'badge-danger' : 'badge-warning';
+        return `<tr>
+          <td><strong>${c?.fornecedor||m.id_contrato}</strong><br><span style="font-size:11px;color:var(--c-text-3)">${c?.empresa||''}</span></td>
+          <td style="font-size:12px;font-weight:600">${Fmt.mesAno(m.mes,m.ano)}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:12px">${Fmt.moeda(m.valor_nota)}</td>
+          <td style="font-size:12px">${Fmt.data(m.data_vencimento)}</td>
+          <td><span class="badge ${cls}">${dias<0?Math.abs(dias)+'d após':dias+'d'}</span></td>
+          <td style="font-size:11px;color:var(--c-text-3)">${label}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+/* ── ALERTAS ───────────────────────────────────────────── */
+function renderAlerts() {
+  const d = _dash;
+  const alertas = [];
+  if (d.contratos_vencidos > 0)
+    alertas.push({ type:'danger',  msg:`${d.contratos_vencidos} contrato(s) vencido(s) — atenção imediata necessária.` });
+  if (d.contratos_vencendo > 0)
+    alertas.push({ type:'warning', msg:`${d.contratos_vencendo} contrato(s) vencem nos próximos 30 dias.` });
+  if (d.boletos_nao_recebidos > 0)
+    alertas.push({ type:'danger',  msg:`${d.boletos_nao_recebidos} boleto(s) não recebido(s) com vencimento próximo ou já passado.` });
+  if (d.nf_tardia > 0)
+    alertas.push({ type:'warning', msg:`${d.nf_tardia} nota(s) fiscal(is) recebida(s) após o vencimento do boleto.` });
+  if (d.boletos_aguardando > 0)
+    alertas.push({ type:'info',    msg:`${d.boletos_aguardando} boleto(s) recebido(s) aguardando envio ao financeiro.` });
+
+  document.getElementById('alert-area').innerHTML = alertas.map(a => `
+    <div class="alert alert-${a.type}" style="margin-bottom:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        ${a.type==='info'
+          ? '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'
+          : '<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'}
+      </svg>
+      <span>${a.msg}</span>
+    </div>`).join('');
+}
+
+/* ── EVOLUÇÃO MENSAL ───────────────────────────────────── */
+function renderEvolucao(dados) {
+  if (!dados.length) return;
+  const max = Math.max(...dados.map(d => d.total), 1);
+  const bars = dados.map(d => {
+    const pct = Math.max(4, Math.round((d.total / max) * 140));
+    return `<div class="bar-item" style="align-items:center">
+      <div style="font-size:10px;color:var(--c-text-3);margin-bottom:4px">${Fmt.moeda(d.total).replace('R$','').trim()}</div>
+      <div style="width:36px;height:${pct}px;background:var(--c-blue-light);border-radius:6px 6px 0 0;cursor:pointer"
+           title="${Fmt.mesNome(d.mes)} ${d.ano}: ${Fmt.moeda(d.total)}"></div>
+      <div style="font-size:10px;color:var(--c-text-3);margin-top:6px">${Fmt.mesAno(d.mes,d.ano)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('chart-evolucao').innerHTML =
+    `<div style="display:flex;gap:8px;align-items:flex-end;width:100%;height:160px">${bars}</div>`;
+}
+
+/* ── PRÓXIMOS VENCIMENTOS ──────────────────────────────── */
+async function renderProximosVencimentos() {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const items = _contratos
+    .filter(c => c.data_fim && c.status === 'Ativo')
+    .map(c => ({ ...c, dias: Fmt.diasRestantes(c.data_fim) }))
+    .filter(c => c.dias !== null && c.dias >= 0 && c.dias <= 60)
+    .sort((a, b) => a.dias - b.dias)
+    .slice(0, 6);
+
+  const el = document.getElementById('proximos-vencimentos');
+  if (!items.length) {
+    el.innerHTML = `<div class="text-muted text-sm">Nenhum contrato vencendo em 60 dias.</div>`;
+    return;
+  }
+  el.innerHTML = items.map(c => {
+    const cls = c.dias <= 7 ? 'badge-danger' : c.dias <= 15 ? 'badge-warning' : 'badge-info';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px;
+         border-radius:var(--r-md);border:1px solid var(--c-border);background:var(--c-surface)">
+      <div style="overflow:hidden">
+        <div style="font-size:12px;font-weight:600;color:var(--c-text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.fornecedor}</div>
+        <div style="font-size:11px;color:var(--c-text-3)">${Fmt.data(c.data_fim)}</div>
+      </div>
+      <span class="badge ${cls}" style="margin-left:8px;flex-shrink:0">${c.dias}d</span>
+    </div>`;
+  }).join('');
+}
+
+/* ── CATEGORIAS ────────────────────────────────────────── */
+function renderCategorias(por) {
+  const entries = Object.entries(por).sort((a, b) => b[1] - a[1]);
+  const max = entries[0]?.[1] || 1;
+  const colors = ['#3B82F6','#0891B2','#7C3AED','#059669','#D97706','#DC2626'];
+  document.getElementById('cat-list').innerHTML = entries.map(([cat, val], i) => `
+    <div style="padding:12px 20px;border-bottom:1px solid var(--c-border)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:500;color:var(--c-text-2)">${cat}</span>
+        <span style="font-size:12px;font-weight:700;color:var(--c-text-1)">${Fmt.moeda(val)}</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${Math.round((val/max)*100)}%;background:${colors[i%colors.length]}"></div>
+      </div>
+    </div>`).join('') || `<div class="empty-state"><p>Sem dados</p></div>`;
+}
+
+/* ── FORNECEDORES ──────────────────────────────────────── */
+function renderFornecedores(por) {
+  const entries = Object.entries(por).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  document.getElementById('forn-list').innerHTML = entries.map(([forn, val]) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--c-border)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:32px;height:32px;border-radius:var(--r-full);background:var(--c-teal-light);
+             display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--c-teal);flex-shrink:0">
+          ${Fmt.initials(forn)}
+        </div>
+        <span style="font-size:12px;font-weight:500;color:var(--c-text-2)">${forn}</span>
+      </div>
+      <span style="font-size:13px;font-weight:700;color:var(--c-text-1)">${Fmt.moeda(val)}</span>
+    </div>`).join('') || `<div class="empty-state"><p>Sem dados</p></div>`;
+}
+
+/* ── TABELA CONTRATOS ──────────────────────────────────── */
+function renderTabelaContratos() {
+  const tbody = document.getElementById('tbody-contratos');
+  const ativos = _contratos.filter(c => c.status === 'Ativo').slice(0, 8);
+  if (!ativos.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><p>Nenhum contrato ativo.</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = ativos.map(c => `
+    <tr>
+      <td>
+        <div style="font-weight:600;color:var(--c-text-1)">${c.fornecedor}</div>
+        <div style="font-size:11px;color:var(--c-text-3)">${c.empresa}</div>
+      </td>
+      <td style="max-width:200px" class="truncate">${c.descricao}</td>
+      <td><span class="badge badge-info">${c.categoria}</span></td>
+      <td style="font-weight:600;font-family:'JetBrains Mono',monospace;font-size:12px">${Fmt.moeda(c.valor_mensal)}</td>
+      <td>
+        <div style="font-size:12px">${Fmt.data(c.data_fim)}</div>
+        ${Status.vencimentoContrato(c.data_fim, c.status)}
+      </td>
+      <td>${Status.badgeContrato(c.status)}</td>
+      <td>
+        <a href="contratos.html?id=${c.id}" class="btn btn-ghost btn-sm btn-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </a>
+      </td>
+    </tr>`).join('');
+}
+
+/* ── EXPORTAR ───────────────────────────────────────────── */
+document.getElementById('btn-export-evolucao').addEventListener('click', async () => {
+  Export.csv(_dash?.evolucao_mensal || [], 'evolucao-mensal');
+});
+
+carregarDashboard();
+</script>
+</body>
+</html>
