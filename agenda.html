@@ -40,18 +40,25 @@
           <div class="card-body" style="padding:var(--sp-md)">
 
             <!-- Legenda -->
-            <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+            <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+              <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--c-text-3)">
+                <div style="width:10px;height:10px;border-radius:2px;background:#7C3AED"></div> Quarta de pagamento
+              </div>
               <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--c-text-3)">
                 <div style="width:10px;height:10px;border-radius:2px;background:var(--c-danger)"></div> Boleto não recebido
               </div>
               <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--c-text-3)">
-                <div style="width:10px;height:10px;border-radius:2px;background:var(--c-warning)"></div> Vencimento
+                <div style="width:10px;height:10px;border-radius:2px;background:var(--c-warning)"></div> Vencimento original
               </div>
               <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--c-text-3)">
                 <div style="width:10px;height:10px;border-radius:2px;background:var(--c-success)"></div> Pago
               </div>
               <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--c-text-3)">
                 <div style="width:10px;height:10px;border-radius:2px;background:var(--c-teal)"></div> Contrato vencendo
+              </div>
+              <div style="margin-left:auto;font-size:11px;color:var(--c-text-3);background:var(--c-ice);
+                   padding:4px 10px;border-radius:99px;border:1px solid var(--c-border)">
+                Pagamentos sempre na quarta-feira anterior ao vencimento
               </div>
             </div>
 
@@ -109,18 +116,21 @@ initApp();
 
 let _contratos  = [];
 let _movimentos = [];
-let _viewDate   = new Date();
-// _eventos: { 'YYYY-MM-DD': [ {tipo, label, detalhe, c, mov} ] }
+let _viewDate   = new Date(); // sempre inicia com a data de hoje
 let _eventos    = {};
 
 /* ── CARREGAR ───────────────────────────────────────────── */
 async function carregar() {
+  // Renderiza o calendário imediatamente com o mês atual (sem eventos)
+  // para que o usuário já veja o mês correto enquanto a API carrega
+  renderCalendario();
+
   try {
     _contratos = await API.listarContratos();
     const all  = await Promise.all(_contratos.map(c => API.listarMovimentacoes(c.id)));
     _movimentos = all.flat();
     calcularEventos();
-    renderCalendario();
+    renderCalendario(); // re-renderiza com os eventos carregados
     renderProximos30();
   } catch(e) {
     Toast.error('Erro ao carregar agenda: ' + e.message);
@@ -128,6 +138,30 @@ async function carregar() {
 }
 
 /* ── CALCULAR EVENTOS ───────────────────────────────────── */
+/* ── QUARTA-FEIRA DE PAGAMENTO ──────────────────────────────
+   Todos os pagamentos são realizados na quarta-feira.
+   Se o boleto vence em qualquer outro dia, o pagamento deve
+   ocorrer na QUARTA ANTERIOR ao vencimento.
+   Se vence na própria quarta, o pagamento é nesse mesmo dia.
+
+   Dia de vencimento → dias a subtrair → quarta de pagamento:
+   Dom(0) → 4d  |  Seg(1) → 5d  |  Ter(2) → 6d  |  Qua(3) → 0d
+   Qui(4) → 1d  |  Sex(5) → 2d  |  Sáb(6) → 3d
+
+   Fórmula: diasSubtrair = (diaSemana - 3 + 7) % 7
+────────────────────────────────────────────────────────────── */
+function calcularQuartaPagamento(dataVencStr) {
+  if (!dataVencStr) return null;
+  const d = new Date(dataVencStr + 'T00:00:00');
+  const diaSemana  = d.getDay();                      // 0=Dom … 6=Sáb
+  const diasSubtr  = (diaSemana - 3 + 7) % 7;        // quanto subtrair até Qua
+  d.setDate(d.getDate() - diasSubtr);
+  return d.toISOString().split('T')[0];               // 'YYYY-MM-DD'
+}
+
+/* Nomes dos dias para exibição */
+const DIAS_SEMANA = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+
 function calcularEventos() {
   _eventos = {};
   const hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -139,28 +173,63 @@ function calcularEventos() {
     _eventos[k].push(ev);
   }
 
-  /* Movimentações — vencimento do boleto */
+  /* Movimentações */
   _movimentos.forEach(m => {
     if (!m.data_vencimento) return;
-    const c   = _contratos.find(x => x.id === m.id_contrato);
-    const fn  = c?.fornecedor || m.id_contrato;
-    const val = Fmt.moeda(m.valor_nota);
+    const c    = _contratos.find(x => x.id === m.id_contrato);
+    const fn   = c?.fornecedor || m.id_contrato;
+    const val  = Fmt.moeda(m.valor_nota);
     const dias = Math.round((new Date(m.data_vencimento) - hoje) / 86400000);
     const boletoNR = !m.data_recebimento_boleto && dias <= 7;
 
-    let tipo, label;
-    if (m.data_pagamento) {
-      tipo  = 'pago';
-      label = `✓ ${fn} ${val}`;
-    } else if (boletoNR) {
-      tipo  = 'boleto'; // vermelho — boleto não recebido perto do venc.
-      label = `⚠ ${fn} ${val}`;
-    } else {
-      tipo  = 'venc';
-      label = `${fn} ${val}`;
-    }
+    // Calcular quarta de pagamento
+    const quartaStr = calcularQuartaPagamento(m.data_vencimento);
+    const dvencObj  = new Date(m.data_vencimento + 'T00:00:00');
+    const diaNomeVenc = DIAS_SEMANA[dvencObj.getDay()];
+    const vencENaQuarta = dvencObj.getDay() === 3; // 3 = Quarta
 
-    add(m.data_vencimento, { tipo, label, detalhe: `${Fmt.mesAno(m.mes,m.ano)} · ${m.numero_nf||'sem NF'} · ${m.numero_boleto||'sem boleto'}`, c, mov: m });
+    // Detalhe completo do evento (aparece no painel lateral ao clicar)
+    const detalhe = [
+      `${Fmt.mesAno(m.mes, m.ano)}`,
+      m.numero_nf     ? `NF: ${m.numero_nf}`         : null,
+      m.numero_boleto ? `Boleto: ${m.numero_boleto}`  : null,
+      `Venc.: ${Fmt.data(m.data_vencimento)} (${diaNomeVenc})`,
+      vencENaQuarta
+        ? `Pagamento: própria quarta-feira`
+        : `Pagar até: ${Fmt.data(quartaStr)} (Quarta anterior)`,
+    ].filter(Boolean).join(' · ');
+
+    /* Evento na data de VENCIMENTO original (para visualizar na grade) */
+    let tipo, labelVenc;
+    if (m.data_pagamento) {
+      tipo      = 'pago';
+      labelVenc = `✓ ${fn} ${val}`;
+    } else if (boletoNR) {
+      tipo      = 'boleto';
+      labelVenc = `⚠ ${fn} ${val}`;
+    } else {
+      tipo      = 'venc';
+      labelVenc = `${fn} ${val}`;
+    }
+    add(m.data_vencimento, { tipo, label: labelVenc, detalhe, c, mov: m, quartaStr });
+
+    /* Evento na QUARTA DE PAGAMENTO (se diferente do vencimento e não pago) */
+    if (!m.data_pagamento && quartaStr && quartaStr !== m.data_vencimento.slice(0,10)) {
+      const labelQuarta = `💳 Pagar: ${fn} ${val}`;
+      const detalheQuarta = [
+        `Quarta de pagamento`,
+        `Venc. original: ${Fmt.data(m.data_vencimento)} (${diaNomeVenc})`,
+        m.numero_boleto ? `Boleto: ${m.numero_boleto}` : null,
+        val,
+      ].filter(Boolean).join(' · ');
+      add(quartaStr, {
+        tipo: 'quarta',
+        label: labelQuarta,
+        detalhe: detalheQuarta,
+        c, mov: m,
+        quartaStr,
+      });
+    }
   });
 
   /* Contratos vencendo nos próximos 90 dias */
@@ -238,14 +307,18 @@ function selecionarDia(key) {
   }
 
   const cores = {
-    pago:'success', boleto:'danger', venc:'warning', contrato:'info', atraso:'danger'
+    pago:'success', boleto:'danger', venc:'warning',
+    contrato:'info', atraso:'danger', quarta:'purple',
   };
+  // para 'quarta' usamos purple (não é uma var CSS padrão, vamos tratar inline)
 
   painel.innerHTML = evs.map(e => {
     const cls = cores[e.tipo] || 'neutral';
+    const bgColor  = e.tipo === 'quarta' ? '#EDE9FE' : `var(--c-${cls}-bg, var(--c-ice))`;
+    const dotColor = e.tipo === 'quarta' ? '#7C3AED' : `var(--c-${cls})`;
     return `<div style="display:flex;align-items:flex-start;gap:8px;padding:8px;border-radius:var(--r-md);
-         background:var(--c-${cls}-bg, var(--c-ice));margin-bottom:6px">
-      <div style="width:8px;height:8px;border-radius:50%;background:var(--c-${cls});
+         background:${bgColor};margin-bottom:6px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${dotColor};
            margin-top:4px;flex-shrink:0"></div>
       <div style="overflow:hidden">
         <div style="font-size:12px;font-weight:600;color:var(--c-text-1);
@@ -287,16 +360,18 @@ function renderProximos30() {
              letter-spacing:.06em;padding:8px 4px 4px;margin-top:${lastDate?'6px':'0'}">${dk}</div>`
       : '';
     lastDate = dk;
-    const cls = cores[e.tipo] || 'neutral';
+    const cls    = cores[e.tipo] || 'neutral';
+    const dotClr = e.tipo === 'quarta' ? '#7C3AED' : `var(--c-${cls})`;
+    const fwt    = e.tipo === 'quarta' ? '700' : '500';
 
     return `${header}
     <div style="display:flex;align-items:center;gap:8px;padding:5px 4px;border-radius:var(--r-sm);cursor:pointer"
          onclick="selecionarDia('${e.key}')"
          onmouseover="this.style.background='var(--c-ice)'"
          onmouseout="this.style.background=''">
-      <div style="width:6px;height:6px;border-radius:50%;background:var(--c-${cls});flex-shrink:0"></div>
+      <div style="width:6px;height:6px;border-radius:50%;background:${dotClr};flex-shrink:0"></div>
       <div style="flex:1;overflow:hidden">
-        <div style="font-size:12px;font-weight:500;color:var(--c-text-1);
+        <div style="font-size:12px;font-weight:${fwt};color:var(--c-text-1);
              white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.label}</div>
       </div>
     </div>`;

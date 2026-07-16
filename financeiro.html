@@ -93,26 +93,23 @@
           </div>
         </div>
         <div class="table-container" style="border:none">
-          <table>
+          <table class="table-compact">
             <thead>
               <tr>
                 <th>Contrato / Fornecedor</th>
                 <th>Empresa</th>
-                <th>NF</th>
                 <th>Boleto</th>
                 <th>Valor</th>
-                <th>Emissão NF</th>
                 <th>Receb. NF</th>
                 <th>Receb. Boleto</th>
                 <th>Envio Fin.</th>
                 <th>Vencimento</th>
-                <th>Pagamento</th>
                 <th>Status</th>
                 <th></th>
               </tr>
             </thead>
             <tbody id="tbody-fin">
-              <tr><td colspan="13" style="text-align:center;padding:32px;color:var(--c-text-3)">
+              <tr><td colspan="10" style="text-align:center;padding:32px;color:var(--c-text-3)">
                 <span class="spinner" style="display:inline-block"></span>
               </td></tr>
             </tbody>
@@ -267,7 +264,7 @@ function lerParamsURL() {
 /* ── CARREGAR ───────────────────────────────────────────── */
 async function carregar() {
   document.getElementById('tbody-fin').innerHTML =
-    `<tr><td colspan="13" style="text-align:center;padding:32px;color:var(--c-text-3)"><span class="spinner" style="display:inline-block"></span></td></tr>`;
+    `<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--c-text-3)"><span class="spinner" style="display:inline-block"></span></td></tr>`;
   try {
     _contratos = await API.listarContratos();
     const promises = _contratos.map(c => API.listarMovimentacoes(c.id));
@@ -282,7 +279,7 @@ async function carregar() {
     aplicarFiltros();
   } catch(e) {
     document.getElementById('tbody-fin').innerHTML = `
-      <tr><td colspan="13">
+      <tr><td colspan="10">
         <div style="padding:32px;text-align:center;color:var(--c-text-3)">
           <div style="font-size:13px;font-weight:600;color:var(--c-text-2);margin-bottom:8px">Erro ao carregar dados</div>
           <div style="font-size:12px;margin-bottom:16px">${e.message}</div>
@@ -435,7 +432,7 @@ function renderTabela() {
   const tbody = document.getElementById('tbody-fin');
 
   if (!page.length) {
-    tbody.innerHTML = `<tr><td colspan="13">
+    tbody.innerHTML = `<tr><td colspan="10">
       <div class="empty-state">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3;margin-bottom:12px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         <h3>Nenhuma movimentação</h3>
@@ -462,20 +459,17 @@ function renderTabela() {
       </td>
       <td style="font-size:12px">${c?.empresa||'—'}</td>
       <td class="mono" style="font-size:11px">
-        ${m.numero_nf||'<span style="color:var(--c-text-4)">—</span>'}
-        ${nfTarde?'<br><span class="badge badge-warning" style="font-size:9px">NF tardia</span>':''}
-      </td>
-      <td class="mono" style="font-size:11px">
         ${m.numero_boleto||'<span style="color:var(--c-text-4)">—</span>'}
         ${boletoAlerta?'<br><span class="badge badge-danger" style="font-size:9px">Não recebido</span>':''}
       </td>
       <td style="font-weight:700;font-family:\'JetBrains Mono\',monospace;font-size:12px">${Fmt.moeda(m.valor_nota)}</td>
-      <td>${dtCell(m.data_emissao_nf)}</td>
-      <td>${dtCell(m.data_recebimento_nf)}</td>
+      <td>
+        ${dtCell(m.data_recebimento_nf)}
+        ${nfTarde?'<br><span class="badge badge-warning" style="font-size:9px">NF tardia</span>':''}
+      </td>
       <td>${dtCell(m.data_recebimento_boleto)}</td>
       <td>${dtCell(m.data_envio_financeiro)}</td>
       <td>${dtCell(m.data_vencimento)}</td>
-      <td>${dtCell(m.data_pagamento)}</td>
       <td>${Status.badgeMovimentacao(m.status)}</td>
       <td>
         <!-- Botão editar: abre DIRETAMENTE a movimentação deste mês/contrato -->
@@ -653,11 +647,10 @@ document.getElementById('btn-export-fin').addEventListener('click', () => {
     const c = _contratos.find(x => x.id === m.id_contrato);
     return {
       Contrato: m.id_contrato, Fornecedor: c?.fornecedor||'', Empresa: c?.empresa||'',
-      Mês: m.mes, Ano: m.ano, NF: m.numero_nf, Boleto: m.numero_boleto,
-      Valor: m.valor_nota, 'Emissão NF': m.data_emissao_nf,
+      Mês: m.mes, Ano: m.ano, Boleto: m.numero_boleto, Valor: m.valor_nota,
       'Receb. NF': m.data_recebimento_nf, 'Receb. Boleto': m.data_recebimento_boleto,
       'Envio Fin.': m.data_envio_financeiro, Vencimento: m.data_vencimento,
-      Pagamento: m.data_pagamento, Status: m.status,
+      Status: m.status,
     };
   }), `financeiro-${document.getElementById('f-mes').value}-${document.getElementById('f-ano').value}`);
 });
@@ -665,12 +658,15 @@ document.getElementById('btn-export-fin').addEventListener('click', () => {
 document.getElementById('btn-print-fin').addEventListener('click', () => {
   const mes = document.getElementById('f-mes').value;
   const ano = document.getElementById('f-ano').value;
-  const heads = ['Fornecedor','Empresa','NF','Boleto','Valor','Vencimento','Pagamento','Status'];
+  const heads = ['Fornecedor','Empresa','Boleto','Valor','Receb. NF','Receb. Boleto','Envio Fin.','Vencimento','Status'];
   const rows  = _filtrados.map(m => {
     const c = _contratos.find(x => x.id === m.id_contrato);
-    return [c?.fornecedor||'—', c?.empresa||'—', m.numero_nf||'—', m.numero_boleto||'—',
-      Fmt.moeda(m.valor_nota), Fmt.data(m.data_vencimento),
-      m.data_pagamento ? Fmt.data(m.data_pagamento) : '—', m.status];
+    return [c?.fornecedor||'—', c?.empresa||'—', m.numero_boleto||'—',
+      Fmt.moeda(m.valor_nota),
+      m.data_recebimento_nf    ? Fmt.data(m.data_recebimento_nf)    : '—',
+      m.data_recebimento_boleto? Fmt.data(m.data_recebimento_boleto): '—',
+      m.data_envio_financeiro  ? Fmt.data(m.data_envio_financeiro)  : '—',
+      Fmt.data(m.data_vencimento), m.status];
   });
   Export.imprimir(Export.tabelaHTML(`Financeiro — ${Fmt.mesNome(parseInt(mes))} ${ano}`, heads, rows));
 });
@@ -680,6 +676,11 @@ maskMoeda(document.getElementById('m-valor'));
 
 /* ── INICIAR ────────────────────────────────────────────── */
 preencherAnos();
+// Definir mês atual como padrão (antes de lerParamsURL que pode sobrescrever)
+(function() {
+  const hoje = new Date();
+  document.getElementById('f-mes').value = hoje.getMonth() + 1;
+})();
 lerParamsURL();
 carregar();
 </script>

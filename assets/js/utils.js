@@ -360,22 +360,73 @@ function initSidebar() {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
 
-  // Colapsar
   const toggle = document.getElementById('sidebar-toggle');
+
+  // Aplicar estado inicial salvo
+  const savedCollapsed = localStorage.getItem('sidebar-collapsed') === '1';
+  _setSidebarState(sidebar, savedCollapsed);
+
+  // Botão de colapsar/expandir
   if (toggle) {
-    const collapsed = localStorage.getItem('sidebar-collapsed') === '1';
-    if (collapsed) sidebar.classList.add('collapsed');
     toggle.addEventListener('click', () => {
-      sidebar.classList.toggle('collapsed');
-      localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed') ? '1' : '0');
+      const nowCollapsed = !sidebar.classList.contains('collapsed');
+      _setSidebarState(sidebar, nowCollapsed);
+      localStorage.setItem('sidebar-collapsed', nowCollapsed ? '1' : '0');
     });
   }
 
-  // Marcar item ativo
+  // Marcar item ativo no menu
   const path = location.pathname.split('/').pop() || 'index.html';
   sidebar.querySelectorAll('.nav-item[data-page]').forEach(el => {
     el.classList.toggle('active', el.dataset.page === path);
   });
+}
+
+/**
+ * Aplica ou remove o estado colapsado do sidebar E do main-content.
+ *
+ * O seletor CSS ".sidebar.collapsed ~ .main-content" não funciona aqui
+ * porque o #sidebar está DENTRO de #sidebar-root, e o .main-content é
+ * irmão de #sidebar-root — não do #sidebar diretamente.
+ *
+ * Solução: aplicar classe 'sidebar-collapsed' no body (acessível globalmente)
+ * E setar o width/margin-left do main-content via JS inline também,
+ * como garantia extra em todos os browsers.
+ */
+function _setSidebarState(sidebar, collapsed) {
+  // 1. Classe no .sidebar para animações internas (ícones, texto)
+  if (collapsed) {
+    sidebar.classList.add('collapsed');
+  } else {
+    sidebar.classList.remove('collapsed');
+  }
+
+  // 2. Classe no body — usada pelo CSS (body.sidebar-collapsed .main-content)
+  if (collapsed) {
+    document.body.classList.add('sidebar-collapsed');
+  } else {
+    document.body.classList.remove('sidebar-collapsed');
+  }
+
+  // 3. Setar width e margin-left diretamente no .main-content via JS
+  //    (mais confiável que seletores CSS de irmão com divs intermediárias)
+  const main = document.querySelector('.main-content, #main-content');
+  if (main) {
+    const sidebarW    = collapsed ? '64px' : '240px';
+    main.style.marginLeft = sidebarW;
+    main.style.width      = `calc(100% - ${sidebarW})`;
+    main.style.maxWidth   = `calc(100% - ${sidebarW})`;
+  }
+
+  // 4. Ajustar posição do botão toggle
+  const toggle = document.getElementById('sidebar-toggle');
+  if (toggle) {
+    toggle.style.left = collapsed
+      ? 'calc(64px - 12px)'
+      : 'calc(240px - 12px)';
+    const ico = toggle.querySelector('.toggle-icon');
+    if (ico) ico.style.transform = collapsed ? 'rotate(180deg)' : '';
+  }
 }
 
 function initTheme() {

@@ -278,18 +278,34 @@ img, svg { display: block; }
 .sidebar-toggle:hover { color: var(--c-navy); }
 .sidebar.collapsed ~ .sidebar-toggle,
 .sidebar.collapsed + .sidebar-toggle { left: calc(var(--sidebar-collapsed) - 12px); }
+body.sidebar-collapsed .sidebar-toggle { left: calc(var(--sidebar-collapsed) - 12px); }
 .sidebar.collapsed .toggle-icon { transform: rotate(180deg); }
+body.sidebar-collapsed .toggle-icon { transform: rotate(180deg); }
 
 /* ── MAIN CONTENT ────────────────────────────────────────── */
 .main-content {
   margin-left: var(--sidebar-w);
-  flex: 1;
+  width: calc(100% - var(--sidebar-w));
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  transition: margin-left var(--t-normal);
+  transition: margin-left var(--t-normal), width var(--t-normal);
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
-.sidebar.collapsed ~ .main-content { margin-left: var(--sidebar-collapsed); }
+
+/* O seletor ~ não funciona pois .sidebar está dentro de #sidebar-root.
+   O JS aplica a classe .sidebar-collapsed ao body para controlar o layout. */
+body.sidebar-collapsed .main-content {
+  margin-left: var(--sidebar-collapsed);
+  width: calc(100% - var(--sidebar-collapsed));
+}
+
+/* Manter compatibilidade com o seletor antigo caso funcione em algum browser */
+.sidebar.collapsed ~ .main-content {
+  margin-left: var(--sidebar-collapsed);
+  width: calc(100% - var(--sidebar-collapsed));
+}
 
 /* ── NAVBAR ──────────────────────────────────────────────── */
 .navbar {
@@ -368,6 +384,10 @@ img, svg { display: block; }
 .page-content {
   flex: 1;
   padding: var(--sp-lg);
+  /* garante que o conteúdo não vaze além da largura disponível */
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 .page-header {
   display: flex;
@@ -562,6 +582,8 @@ img, svg { display: block; }
   overflow-x: auto;
   border-radius: var(--r-lg);
   border: 1px solid var(--c-border);
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 table {
   width: 100%;
@@ -916,6 +938,7 @@ select.form-control { cursor: pointer; }
 .calendar-event.atraso { background: var(--c-danger-bg);  color: var(--c-danger); }
 .calendar-event.boleto { background: var(--c-danger-bg);  color: var(--c-danger); }
 .calendar-event.contrato { background: var(--c-teal-light); color: var(--c-teal); }
+.calendar-event.quarta  { background: #EDE9FE; color: #7C3AED; font-weight: 600; }
 .calendar-mais {
   font-size: 9px;
   color: var(--c-text-4);
@@ -1225,3 +1248,19 @@ select.form-control { cursor: pointer; }
 .hidden { display: none !important; }
 .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rounded { border-radius: var(--r-md); }
+
+/* ── TABELAS COMPACTAS (muitas colunas) ─────────────────── */
+/* financeiro e contratos têm 12-13 colunas; compactar para caber sem scroll da página */
+.table-compact th,
+.table-compact td {
+  padding: 7px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.table-compact .mono { font-size: 11px; }
+
+/* Impede que grids internos causem overflow */
+.card > .table-container,
+.card > div > .table-container {
+  max-width: 100%;
+}
